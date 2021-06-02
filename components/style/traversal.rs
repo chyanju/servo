@@ -115,6 +115,7 @@ pub trait DomTraversal<E: TElement>: Sync {
         mut node: E::ConcreteNode,
         children_to_process: isize,
     ) {
+        println!("# [debug] style/traversal.rs, handle_postorder_traversal, node is: {:?}, children_to_process is: {:?}", node, children_to_process);
         // If the postorder step is a no-op, don't bother.
         if !Self::needs_postorder_traversal() {
             return;
@@ -123,6 +124,7 @@ pub trait DomTraversal<E: TElement>: Sync {
         if children_to_process == 0 {
             // We are a leaf. Walk up the chain.
             loop {
+                println!("  # [checkpoint] >> calling process_postorder");
                 self.process_postorder(context, node);
                 if node.opaque() == root {
                     break;
@@ -152,6 +154,7 @@ pub trait DomTraversal<E: TElement>: Sync {
     /// such, we have a pre-traversal step to handle that part and determine whether
     /// a full traversal is needed.
     fn pre_traverse(root: E, shared_context: &SharedStyleContext) -> PreTraverseToken<E> {
+        println!("# [debug] traversal.rs, pre_traverse");
         let traversal_flags = shared_context.traversal_flags;
 
         let mut data = root.mutate_data();
@@ -205,6 +208,7 @@ pub trait DomTraversal<E: TElement>: Sync {
         traversal_flags: TraversalFlags,
         data: Option<&ElementData>,
     ) -> bool {
+        println!("# [debug] traversal.rs, element_needs_traversal({:?}, {:?}, {:?})", el, traversal_flags, data);
         debug!(
             "element_needs_traversal({:?}, {:?}, {:?})",
             el, traversal_flags, data
@@ -412,6 +416,7 @@ pub fn recalc_style_at<E, D, F>(
         element.has_dirty_descendants(),
         data
     );
+    println!("# [debug] style/traversal.rs, recalc_style_at, element is: {:?}", element);
 
     let mut child_cascade_requirement = ChildCascadeRequirement::CanSkipCascade;
 

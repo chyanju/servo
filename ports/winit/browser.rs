@@ -268,9 +268,11 @@ where
         for (browser_id, msg) in events {
             match msg {
                 EmbedderMsg::Status(_status) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::Status(_status)");
                     // FIXME: surface this status string in the UI somehow
                 },
                 EmbedderMsg::ChangePageTitle(title) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::ChangePageTitle(title)");
                     self.title = title;
 
                     let fallback_title: String = if let Some(ref current_url) = self.current_url {
@@ -286,12 +288,15 @@ where
                     self.window.set_title(&title);
                 },
                 EmbedderMsg::MoveTo(point) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::MoveTo(point)");
                     self.window.set_position(point);
                 },
                 EmbedderMsg::ResizeTo(size) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::ResizeTo(size)");
                     self.window.set_inner_size(size);
                 },
                 EmbedderMsg::Prompt(definition, origin) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::Prompt(definition, origin)");
                     let res = if opts::get().headless {
                         match definition {
                             PromptDefinition::Alert(_message, sender) => sender.send(()),
@@ -370,6 +375,7 @@ where
                     }
                 },
                 EmbedderMsg::AllowUnload(sender) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::AllowUnload(sender)");
                     // Always allow unload for now.
                     if let Err(e) = sender.send(true) {
                         let reason = format!("Failed to send AllowUnload response: {}", e);
@@ -378,12 +384,14 @@ where
                     }
                 },
                 EmbedderMsg::AllowNavigationRequest(pipeline_id, _url) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::AllowNavigationRequest(pipeline_id, _url)");
                     if let Some(_browser_id) = browser_id {
                         self.event_queue
                             .push(WindowEvent::AllowNavigationResponse(pipeline_id, true));
                     }
                 },
                 EmbedderMsg::AllowOpeningBrowser(response_chan) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::AllowOpeningBrowser(response_chan)");
                     // Note: would be a place to handle pop-ups config.
                     // see Step 7 of #the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
                     if let Err(e) = response_chan.send(true) {
@@ -391,6 +399,7 @@ where
                     };
                 },
                 EmbedderMsg::BrowserCreated(new_browser_id) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::BrowserCreated(new_browser_id)");
                     // TODO: properly handle a new "tab"
                     self.browsers.push(new_browser_id);
                     if self.browser_id.is_none() {
@@ -402,9 +411,11 @@ where
                         .push(WindowEvent::SelectBrowser(new_browser_id));
                 },
                 EmbedderMsg::Keyboard(key_event) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::Keyboard(key_event)");
                     self.handle_key_from_servo(browser_id, key_event);
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::GetClipboardContents(sender)");
                     let contents = match self.clipboard_ctx {
                         Some(ref mut ctx) => match ctx.get_contents() {
                             Ok(c) => c,
@@ -420,6 +431,7 @@ where
                     }
                 },
                 EmbedderMsg::SetClipboardContents(text) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::SetClipboardContents(text)");
                     if let Some(ref mut ctx) = self.clipboard_ctx {
                         if let Err(e) = ctx.set_contents(text) {
                             warn!("Error setting clipboard contents ({})", e);
@@ -427,27 +439,35 @@ where
                     }
                 },
                 EmbedderMsg::SetCursor(cursor) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::SetCursor(cursor)");
                     self.window.set_cursor(cursor);
                 },
                 EmbedderMsg::NewFavicon(_url) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::NewFavicon(_url)");
                     // FIXME: show favicons in the UI somehow
                 },
                 EmbedderMsg::HeadParsed => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::HeadParsed");
                     // FIXME: surface the loading state in the UI somehow
                 },
                 EmbedderMsg::HistoryChanged(urls, current) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::HistoryChanged(urls, current)");
                     self.current_url = Some(urls[current].clone());
                 },
                 EmbedderMsg::SetFullscreenState(state) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::SetFullscreenState(state)");
                     self.window.set_fullscreen(state);
                 },
                 EmbedderMsg::LoadStart => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::LoadStart");
                     // FIXME: surface the loading state in the UI somehow
                 },
                 EmbedderMsg::LoadComplete => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::LoadComplete");
                     // FIXME: surface the loading state in the UI somehow
                 },
                 EmbedderMsg::CloseBrowser => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::CloseBrowser");
                     // TODO: close the appropriate "tab".
                     let _ = self.browsers.pop();
                     if let Some(prev_browser_id) = self.browsers.last() {
@@ -459,10 +479,14 @@ where
                     }
                 },
                 EmbedderMsg::Shutdown => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::Shutdown");
                     self.shutdown_requested = true;
                 },
-                EmbedderMsg::Panic(_reason, _backtrace) => {},
+                EmbedderMsg::Panic(_reason, _backtrace) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::Panic(_reason, _backtrace)");
+                },
                 EmbedderMsg::GetSelectedBluetoothDevice(devices, sender) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::GetSelectedBluetoothDevice(devices, sender)");
                     let selected = platform_get_selected_devices(devices);
                     if let Err(e) = sender.send(selected) {
                         let reason =
@@ -471,6 +495,7 @@ where
                     };
                 },
                 EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::SelectFiles(patterns, multiple_files, sender)");
                     let res = match (
                         opts::get().headless,
                         get_selected_files(patterns, multiple_files),
@@ -484,16 +509,20 @@ where
                     };
                 },
                 EmbedderMsg::PromptPermission(prompt, sender) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::PromptPermission(prompt, sender)");
                     let permission_state = prompt_user(prompt);
                     let _ = sender.send(permission_state);
                 },
                 EmbedderMsg::ShowIME(_kind, _text, _multiline, _rect) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::ShowIME(_kind, _text, _multiline, _rect)");
                     debug!("ShowIME received");
                 },
                 EmbedderMsg::HideIME => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::HideIME");
                     debug!("HideIME received");
                 },
                 EmbedderMsg::ReportProfile(bytes) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::ReportProfile(bytes)");
                     let filename = env::var("PROFILE_OUTPUT").unwrap_or("samples.json".to_string());
                     let result = File::create(&filename).and_then(|mut f| f.write_all(&bytes));
                     if let Err(e) = result {
@@ -501,14 +530,19 @@ where
                     }
                 },
                 EmbedderMsg::MediaSessionEvent(_) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::MediaSessionEvent(_)");
                     debug!("MediaSessionEvent received");
                     // TODO(ferjm): MediaSession support for winit based browsers.
                 },
-                EmbedderMsg::OnDevtoolsStarted(port, _token) => match port {
-                    Ok(p) => info!("Devtools Server running on port {}", p),
-                    Err(()) => error!("Error running devtools server"),
+                EmbedderMsg::OnDevtoolsStarted(port, _token) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::OnDevtoolsStarted(port, _token)");
+                    match port {
+                        Ok(p) => info!("Devtools Server running on port {}", p),
+                        Err(()) => error!("Error running devtools server"),
+                    }
                 },
                 EmbedderMsg::ShowContextMenu(sender, ..) => {
+                    println!("# [debug] browser.rs, handle_servo_events, EmbedderMsg::ShowContextMenu(sender, ..)");
                     let _ = sender.send(ContextMenuResult::Ignored);
                 },
             }

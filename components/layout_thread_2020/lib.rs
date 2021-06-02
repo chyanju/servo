@@ -875,6 +875,7 @@ impl LayoutThread {
         data: &mut ScriptReflowResult,
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
     ) {
+        // println!("# [checkpoint] handle_reflow/2020");
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 

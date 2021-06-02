@@ -1638,6 +1638,12 @@ impl Fragment {
                     // We have to initialize the `border_padding` field first to make
                     // the size constraints work properly.
                     // TODO(stshine): Find a cleaner way to do this.
+
+                    let before_inline_start = self.border_padding.inline_start;
+                    let before_inline_end = self.border_padding.inline_end;
+                    let before_block_start = self.border_padding.block_start;
+                    let before_block_end = self.border_padding.block_end;
+
                     let padding = self.style.logical_padding();
                     self.border_padding.inline_start = padding.inline_start.to_used_value(Au(0));
                     self.border_padding.inline_end = padding.inline_end.to_used_value(Au(0));
@@ -1648,6 +1654,20 @@ impl Fragment {
                     self.border_padding.inline_end += border.inline_end;
                     self.border_padding.block_start += border.block_start;
                     self.border_padding.block_end += border.block_end;
+
+                    let after_inline_start = self.border_padding.inline_start;
+                    let after_inline_end = self.border_padding.inline_end;
+                    let after_block_start = self.border_padding.block_start;
+                    let after_block_end = self.border_padding.block_end;
+                    /* YANJU-PROFILE */ println!("----[profile] fragment.rs, compute_intrinsic_inline_sizes, border_padding.inline_start, before={:?}, after={:?}, same={:?}", 
+                        before_inline_start, after_inline_start, before_inline_start==after_inline_start);
+                    /* YANJU-PROFILE */ println!("----[profile] fragment.rs, compute_intrinsic_inline_sizes, border_padding.inline_end, before={:?}, after={:?}, same={:?}", 
+                        before_inline_end, after_inline_end, before_inline_end==after_inline_end);
+                   /* YANJU-PROFILE */ println!("----[profile] fragment.rs, compute_intrinsic_inline_sizes, border_padding.block_start, before={:?}, after={:?}, same={:?}", 
+                        before_block_start, after_block_start, before_block_start==after_block_start);
+                    /* YANJU-PROFILE */ println!("----[profile] fragment.rs, compute_intrinsic_inline_sizes, border_padding.block_end, before={:?}, after={:?}, same={:?}", 
+                        before_block_end, after_block_end, before_block_end==after_block_end);
+
                     let (result_inline, _) = self.calculate_replaced_sizes(None, None);
                     result_inline
                 });
@@ -2069,8 +2089,12 @@ impl Fragment {
             }
             info.range.extend_to(range_end);
             info.content_size.inline = info.run.metrics_for_range(&info.range).advance_width;
+            let before_inline = self.border_box.size.inline;
             self.border_box.size.inline =
                 info.content_size.inline + self.border_padding.inline_start_end();
+            let after_inline = self.border_box.size.inline;
+            /* YANJU-PROFILE */ println!("----[profile] fragment.rs, reset_text_range_and_inline_size, border_box.size.inline, before={:?}, after={:?}, same={:?}", 
+                        before_inline, after_inline, before_inline==after_inline);
         }
     }
 
@@ -2117,23 +2141,35 @@ impl Fragment {
                     block_flow.base.intrinsic_inline_sizes.preferred_inline_size;
 
                 // This is a hypothetical box, so it takes up no space.
+                let before_inline = self.border_box.size.inline;
                 self.border_box.size.inline = Au(0);
+                let after_inline = self.border_box.size.inline;
+                /* YANJU-PROFILE */ println!("----[profile] fragment.rs, assign_replaced_inline_size_if_necessary, border_box.size.inline, before={:?}, after={:?}, same={:?}", 
+                        before_inline, after_inline, before_inline==after_inline);
             },
             SpecificFragmentInfo::InlineBlock(ref mut info) => {
                 let block_flow = FlowRef::deref_mut(&mut info.flow_ref).as_mut_block();
+                let before_inline = self.border_box.size.inline;
                 self.border_box.size.inline = max(
                     block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
                     block_flow.base.intrinsic_inline_sizes.preferred_inline_size,
                 );
+                let after_inline = self.border_box.size.inline;
+                /* YANJU-PROFILE */ println!("----[profile] fragment.rs, assign_replaced_inline_size_if_necessary, border_box.size.inline, before={:?}, after={:?}, same={:?}", 
+                        before_inline, after_inline, before_inline==after_inline);
                 block_flow.base.block_container_inline_size = self.border_box.size.inline;
                 block_flow.base.block_container_writing_mode = self.style.writing_mode;
             },
             SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                 let block_flow = FlowRef::deref_mut(&mut info.flow_ref).as_mut_block();
+                let before_inline = self.border_box.size.inline;
                 self.border_box.size.inline = max(
                     block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
                     block_flow.base.intrinsic_inline_sizes.preferred_inline_size,
                 );
+                let after_inline = self.border_box.size.inline;
+                /* YANJU-PROFILE */ println!("----[profile] fragment.rs, assign_replaced_inline_size_if_necessary, border_box.size.inline, before={:?}, after={:?}, same={:?}", 
+                        before_inline, after_inline, before_inline==after_inline);
                 block_flow.base.block_container_inline_size = self.border_box.size.inline;
                 block_flow.base.block_container_writing_mode = self.style.writing_mode;
             },
@@ -2143,22 +2179,38 @@ impl Fragment {
                 let info = t.text_info.as_ref().unwrap();
                 // Scanned text fragments will have already had their content inline-sizes assigned
                 // by this point.
+                let before_inline = self.border_box.size.inline;
                 self.border_box.size.inline =
                     info.content_size.inline + self.border_padding.inline_start_end();
+                let after_inline = self.border_box.size.inline;
+                /* YANJU-PROFILE */ println!("----[profile] fragment.rs, assign_replaced_inline_size_if_necessary, border_box.size.inline, before={:?}, after={:?}, same={:?}", 
+                        before_inline, after_inline, before_inline==after_inline);
             },
             SpecificFragmentInfo::ScannedText(ref info) => {
                 // Scanned text fragments will have already had their content inline-sizes assigned
                 // by this point.
+                let before_inline = self.border_box.size.inline;
                 self.border_box.size.inline =
                     info.content_size.inline + self.border_padding.inline_start_end();
+                let after_inline = self.border_box.size.inline;
+                /* YANJU-PROFILE */ println!("----[profile] fragment.rs, assign_replaced_inline_size_if_necessary, border_box.size.inline, before={:?}, after={:?}, same={:?}", 
+                        before_inline, after_inline, before_inline==after_inline);
             },
 
             // Replaced elements
             _ if self.is_replaced() => {
                 let (inline_size, block_size) = self
                     .calculate_replaced_sizes(Some(container_inline_size), container_block_size);
+                let before_inline = self.border_box.size.inline;
+                let before_block = self.border_box.size.block;
                 self.border_box.size.inline = inline_size + self.border_padding.inline_start_end();
                 self.border_box.size.block = block_size + self.border_padding.block_start_end();
+                let after_inline = self.border_box.size.inline;
+                let after_block = self.border_box.size.block;
+                /* YANJU-PROFILE */ println!("----[profile] fragment.rs, assign_replaced_inline_size_if_necessary, border_box.size.inline, before={:?}, after={:?}, same={:?}", 
+                        before_inline, after_inline, before_inline==after_inline);
+                /* YANJU-PROFILE */ println!("----[profile] fragment.rs, assign_replaced_inline_size_if_necessary, border_box.size.block, before={:?}, after={:?}, same={:?}", 
+                        before_block, after_block, before_block==after_block);
             },
 
             ref unhandled @ _ => {
@@ -2206,33 +2258,53 @@ impl Fragment {
                 let info = t.text_info.as_ref().unwrap();
                 // Scanned text fragments' content block-sizes are calculated by the text run
                 // scanner during flow construction.
+                let before_block = self.border_box.size.block;
                 self.border_box.size.block =
                     info.content_size.block + self.border_padding.block_start_end();
+                let after_block = self.border_box.size.block;
+                /* YANJU-PROFILE */ println!("----[profile] fragment.rs, assign_replaced_block_size_if_necessary, border_box.size.block, before={:?}, after={:?}, same={:?}", 
+                        before_block, after_block, before_block==after_block);
             },
             SpecificFragmentInfo::ScannedText(ref info) => {
                 // Scanned text fragments' content block-sizes are calculated by the text run
                 // scanner during flow construction.
+                let before_block = self.border_box.size.block;
                 self.border_box.size.block =
                     info.content_size.block + self.border_padding.block_start_end();
+                let after_block = self.border_box.size.block;
+                /* YANJU-PROFILE */ println!("----[profile] fragment.rs, assign_replaced_block_size_if_necessary, border_box.size.block, before={:?}, after={:?}, same={:?}", 
+                        before_block, after_block, before_block==after_block);
             },
 
             // Inline blocks
             SpecificFragmentInfo::InlineBlock(ref mut info) => {
                 // Not the primary fragment, so we do not take the noncontent size into account.
                 let block_flow = FlowRef::deref_mut(&mut info.flow_ref).as_block();
+                let before_block = self.border_box.size.block;
                 self.border_box.size.block = block_flow.base.position.size.block +
-                    block_flow.fragment.margin.block_start_end()
+                    block_flow.fragment.margin.block_start_end();
+                let after_block = self.border_box.size.block;
+                /* YANJU-PROFILE */ println!("----[profile] fragment.rs, assign_replaced_block_size_if_necessary, border_box.size.block, before={:?}, after={:?}, same={:?}", 
+                        before_block, after_block, before_block==after_block);
             },
             SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                 // Not the primary fragment, so we do not take the noncontent size into account.
                 let block_flow = FlowRef::deref_mut(&mut info.flow_ref).as_block();
+                let before_block = self.border_box.size.block;
                 self.border_box.size.block = block_flow.base.position.size.block;
+                let after_block = self.border_box.size.block;
+                /* YANJU-PROFILE */ println!("----[profile] fragment.rs, assign_replaced_block_size_if_necessary, border_box.size.block, before={:?}, after={:?}, same={:?}", 
+                        before_block, after_block, before_block==after_block);
             },
             SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                 // Not the primary fragment, so we do not take the noncontent size into account.
                 let block_flow = FlowRef::deref_mut(&mut info.flow_ref).as_block();
+                let before_block = self.border_box.size.block;
                 self.border_box.size.block = block_flow.base.position.size.block +
-                    block_flow.fragment.margin.block_start_end()
+                    block_flow.fragment.margin.block_start_end();
+                let after_block = self.border_box.size.block;
+                /* YANJU-PROFILE */ println!("----[profile] fragment.rs, assign_replaced_block_size_if_necessary, border_box.size.block, before={:?}, after={:?}, same={:?}", 
+                        before_block, after_block, before_block==after_block);
             },
 
             // Replaced elements
@@ -2634,7 +2706,11 @@ impl Fragment {
     pub fn update_late_computed_replaced_inline_size_if_necessary(&mut self) {
         if let SpecificFragmentInfo::InlineBlock(ref mut inline_block_info) = self.specific {
             let block_flow = FlowRef::deref_mut(&mut inline_block_info.flow_ref).as_block();
+            let before_inline = self.border_box.size.inline;
             self.border_box.size.inline = block_flow.fragment.margin_box_inline_size();
+            let after_inline = self.border_box.size.inline;
+            /* YANJU-PROFILE */ println!("----[profile] fragment.rs, update_late_computed_replaced_inline_size_if_necessary, border_box.size.inline, before={:?}, after={:?}, same={:?}", 
+                        before_inline, after_inline, before_inline==after_inline);
         }
     }
 

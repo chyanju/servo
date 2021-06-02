@@ -939,6 +939,7 @@ where
 
     /// The main event loop for the constellation.
     fn run(&mut self) {
+        println!("# [debug] constellation.rs, run, handle_request");
         while !self.shutting_down || !self.pipelines.is_empty() {
             // Randomly close a pipeline if --random-pipeline-closure-probability is set
             // This is for testing the hardening of the constellation.
@@ -1383,25 +1384,35 @@ where
 
         match request {
             Request::PipelineNamespace(message) => {
+                println!("# [debug] constellation.rs, handle_request, Request::PipelineNamespace(message)");
                 self.handle_request_for_pipeline_namespace(message)
             },
-            Request::Compositor(message) => self.handle_request_from_compositor(message),
+            Request::Compositor(message) => {
+                println!("# [debug] constellation.rs, handle_request, Request::Compositor(message)");
+                self.handle_request_from_compositor(message)
+            },
             Request::Script(message) => {
+                println!("# [debug] constellation.rs, handle_request, Request::Script(message)");
                 self.handle_request_from_script(message);
             },
             Request::BackgroundHangMonitor(message) => {
+                println!("# [debug] constellation.rs, handle_request, Request::BackgroundHangMonitor(message)");
                 self.handle_request_from_background_hang_monitor(message);
             },
             Request::Layout(message) => {
+                println!("# [debug] constellation.rs, handle_request, Request::Layout(message)");
                 self.handle_request_from_layout(message);
             },
             Request::NetworkListener(message) => {
+                println!("# [debug] constellation.rs, handle_request, Request::NetworkListener(message)");
                 self.handle_request_from_network_listener(message);
             },
             Request::FromSWManager(message) => {
+                println!("# [debug] constellation.rs, handle_request, Request::FromSWManager(message)");
                 self.handle_request_from_swmanager(message);
             },
             Request::Timer(message) => {
+                println!("# [debug] constellation.rs, handle_request, Request::Timer(message)");
                 self.timer_scheduler.handle_timer_request(message);
             },
         }
@@ -1669,34 +1680,44 @@ where
 
         match content {
             FromScriptMsg::CompleteMessagePortTransfer(router_id, ports) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::CompleteMessagePortTransfer(router_id, ports)");
                 self.handle_complete_message_port_transfer(router_id, ports);
             },
             FromScriptMsg::MessagePortTransferResult(router_id, succeeded, failed) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::MessagePortTransferResult(router_id, succeeded, failed)");
                 self.handle_message_port_transfer_completed(router_id, succeeded);
                 self.handle_message_port_transfer_failed(failed);
             },
             FromScriptMsg::RerouteMessagePort(port_id, task) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::RerouteMessagePort(port_id, task)");
                 self.handle_reroute_messageport(port_id, task);
             },
             FromScriptMsg::MessagePortShipped(port_id) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::MessagePortShipped(port_id)");
                 self.handle_messageport_shipped(port_id);
             },
             FromScriptMsg::NewMessagePortRouter(router_id, ipc_sender) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::NewMessagePortRouter(router_id, ipc_sender)");
                 self.handle_new_messageport_router(router_id, ipc_sender);
             },
             FromScriptMsg::RemoveMessagePortRouter(router_id) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::RemoveMessagePortRouter(router_id)");
                 self.handle_remove_messageport_router(router_id);
             },
             FromScriptMsg::NewMessagePort(router_id, port_id) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::NewMessagePort(router_id, port_id)");
                 self.handle_new_messageport(router_id, port_id);
             },
             FromScriptMsg::RemoveMessagePort(port_id) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::RemoveMessagePort(port_id)");
                 self.handle_remove_messageport(port_id);
             },
             FromScriptMsg::EntanglePorts(port1, port2) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::EntanglePorts(port1, port2)");
                 self.handle_entangle_messageports(port1, port2);
             },
             FromScriptMsg::NewBroadcastChannelRouter(router_id, ipc_sender, origin) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::NewBroadcastChannelRouter(router_id, ipc_sender, origin)");
                 self.handle_new_broadcast_channel_router(
                     source_pipeline_id,
                     router_id,
@@ -1705,6 +1726,7 @@ where
                 );
             },
             FromScriptMsg::NewBroadcastChannelNameInRouter(router_id, channel_name, origin) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::NewBroadcastChannelNameInRouter(router_id, channel_name, origin)");
                 self.handle_new_broadcast_channel_name_in_router(
                     source_pipeline_id,
                     router_id,
@@ -1713,6 +1735,7 @@ where
                 );
             },
             FromScriptMsg::RemoveBroadcastChannelNameInRouter(router_id, channel_name, origin) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::RemoveBroadcastChannelNameInRouter(router_id, channel_name, origin)");
                 self.handle_remove_broadcast_channel_name_in_router(
                     source_pipeline_id,
                     router_id,
@@ -1721,76 +1744,97 @@ where
                 );
             },
             FromScriptMsg::RemoveBroadcastChannelRouter(router_id, origin) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::RemoveBroadcastChannelRouter(router_id, origin)");
                 self.handle_remove_broadcast_channel_router(source_pipeline_id, router_id, origin);
             },
             FromScriptMsg::ScheduleBroadcast(router_id, message) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::ScheduleBroadcast(router_id, message)");
                 self.handle_schedule_broadcast(source_pipeline_id, router_id, message);
             },
             FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::ForwardToEmbedder(embedder_msg)");
                 self.embedder_proxy
                     .send((Some(source_top_ctx_id), embedder_msg));
             },
             FromScriptMsg::PipelineExited => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::PipelineExited");
                 self.handle_pipeline_exited(source_pipeline_id);
             },
             FromScriptMsg::DiscardDocument => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::DiscardDocument");
                 self.handle_discard_document(source_top_ctx_id, source_pipeline_id);
             },
             FromScriptMsg::DiscardTopLevelBrowsingContext => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::DiscardTopLevelBrowsingContext");
                 self.handle_close_top_level_browsing_context(source_top_ctx_id);
             },
 
             FromScriptMsg::InitiateNavigateRequest(req_init, cancel_chan) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::InitiateNavigateRequest(req_init, cancel_chan)");
                 self.handle_navigate_request(source_pipeline_id, req_init, cancel_chan);
             },
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::ScriptLoadedURLInIFrame(load_info)");
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
             },
             FromScriptMsg::ScriptNewIFrame(load_info, layout_sender) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::ScriptNewIFrame(load_info, layout_sender)");
                 self.handle_script_new_iframe(load_info, layout_sender);
             },
             FromScriptMsg::ScriptNewAuxiliary(load_info, layout_sender) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::ScriptNewAuxiliary(load_info, layout_sender)");
                 self.handle_script_new_auxiliary(load_info, layout_sender);
             },
             FromScriptMsg::ChangeRunningAnimationsState(animation_state) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::ChangeRunningAnimationsState(animation_state)");
                 self.handle_change_running_animations_state(source_pipeline_id, animation_state)
             },
             // Ask the embedder for permission to load a new page.
             FromScriptMsg::LoadUrl(load_data, replace) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::LoadUrl(load_data, replace)");
                 self.schedule_navigation(source_top_ctx_id, source_pipeline_id, load_data, replace);
             },
             FromScriptMsg::AbortLoadUrl => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::AbortLoadUrl");
                 self.handle_abort_load_url_msg(source_pipeline_id);
             },
             // A page loaded has completed all parsing, script, and reflow messages have been sent.
             FromScriptMsg::LoadComplete => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::LoadComplete");
                 self.handle_load_complete_msg(source_top_ctx_id, source_pipeline_id)
             },
             // Handle navigating to a fragment
             FromScriptMsg::NavigatedToFragment(new_url, replacement_enabled) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::NavigatedToFragment(new_url, replacement_enabled)");
                 self.handle_navigated_to_fragment(source_pipeline_id, new_url, replacement_enabled);
             },
             // Handle a forward or back request
             FromScriptMsg::TraverseHistory(direction) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::TraverseHistory(direction)");
                 self.handle_traverse_history_msg(source_top_ctx_id, direction);
             },
             // Handle a push history state request.
             FromScriptMsg::PushHistoryState(history_state_id, url) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::PushHistoryState(history_state_id, url)");
                 self.handle_push_history_state_msg(source_pipeline_id, history_state_id, url);
             },
             FromScriptMsg::ReplaceHistoryState(history_state_id, url) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::ReplaceHistoryState(history_state_id, url)");
                 self.handle_replace_history_state_msg(source_pipeline_id, history_state_id, url);
             },
             // Handle a joint session history length request.
             FromScriptMsg::JointSessionHistoryLength(sender) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::JointSessionHistoryLength(sender)");
                 self.handle_joint_session_history_length(source_top_ctx_id, sender);
             },
             // Notification that the new document is ready to become active
             FromScriptMsg::ActivateDocument => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::ActivateDocument");
                 self.handle_activate_document_msg(source_pipeline_id);
             },
             // Update pipeline url after redirections
             FromScriptMsg::SetFinalUrl(final_url) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::SetFinalUrl(final_url)");
                 // The script may have finished loading after we already started shutting down.
                 if let Some(ref mut pipeline) = self.pipelines.get_mut(&source_pipeline_id) {
                     pipeline.url = final_url;
@@ -1805,6 +1849,7 @@ where
                 source_origin,
                 data,
             } => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::PostMessage");
                 self.handle_post_message_msg(
                     browsing_context_id,
                     source_pipeline_id,
@@ -1814,42 +1859,55 @@ where
                 );
             },
             FromScriptMsg::Focus => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::Focus");
                 self.handle_focus_msg(source_pipeline_id);
             },
             FromScriptMsg::VisibilityChangeComplete(is_visible) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::VisibilityChangeComplete(is_visible)");
                 self.handle_visibility_change_complete(source_pipeline_id, is_visible);
             },
             FromScriptMsg::RemoveIFrame(browsing_context_id, sender) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::RemoveIFrame(browsing_context_id, sender)");
                 let removed_pipeline_ids = self.handle_remove_iframe_msg(browsing_context_id);
                 if let Err(e) = sender.send(removed_pipeline_ids) {
                     warn!("Error replying to remove iframe ({})", e);
                 }
             },
             FromScriptMsg::CreateCanvasPaintThread(size, sender) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::CreateCanvasPaintThread(size, sender)");
                 self.handle_create_canvas_paint_thread_msg(size, sender)
             },
             FromScriptMsg::SetDocumentState(state) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::SetDocumentState(state)");
                 self.document_states.insert(source_pipeline_id, state);
             },
             FromScriptMsg::GetClientWindow(send) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::GetClientWindow(send)");
                 self.compositor_proxy
                     .send(ToCompositorMsg::GetClientWindow(send));
             },
             FromScriptMsg::GetScreenSize(send) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::GetScreenSize(send)");
                 self.compositor_proxy
                     .send(ToCompositorMsg::GetScreenSize(send));
             },
             FromScriptMsg::GetScreenAvailSize(send) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::GetScreenAvailSize(send)");
                 self.compositor_proxy
                     .send(ToCompositorMsg::GetScreenAvailSize(send));
             },
             FromScriptMsg::LogEntry(thread_name, entry) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::LogEntry(thread_name, entry)");
                 self.handle_log_entry(Some(source_top_ctx_id), thread_name, entry);
             },
-            FromScriptMsg::TouchEventProcessed(result) => self
+            FromScriptMsg::TouchEventProcessed(result) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::TouchEventProcessed(result)");
+                self
                 .compositor_proxy
-                .send(ToCompositorMsg::TouchEventProcessed(result)),
+                .send(ToCompositorMsg::TouchEventProcessed(result))
+            },
             FromScriptMsg::GetBrowsingContextInfo(pipeline_id, sender) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::GetBrowsingContextInfo(pipeline_id, sender)");
                 let result = self
                     .pipelines
                     .get(&pipeline_id)
@@ -1863,6 +1921,7 @@ where
                 }
             },
             FromScriptMsg::GetTopForBrowsingContext(browsing_context_id, sender) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::GetTopForBrowsingContext(browsing_context_id, sender)");
                 let result = self
                     .browsing_contexts
                     .get(&browsing_context_id)
@@ -1875,6 +1934,7 @@ where
                 }
             },
             FromScriptMsg::GetChildBrowsingContextId(browsing_context_id, index, sender) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::GetChildBrowsingContextId(browsing_context_id, index, sender)");
                 let result = self
                     .browsing_contexts
                     .get(&browsing_context_id)
@@ -1889,9 +1949,11 @@ where
                 }
             },
             FromScriptMsg::ScheduleJob(job) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::ScheduleJob(job)");
                 self.handle_schedule_serviceworker_job(source_pipeline_id, job);
             },
             FromScriptMsg::ForwardDOMMessage(msg_vec, scope_url) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::ForwardDOMMessage(msg_vec, scope_url)");
                 if let Some(mgr) = self.sw_managers.get(&scope_url.origin()) {
                     let _ = mgr.send(ServiceWorkerMsg::ForwardDOMMessage(msg_vec, scope_url));
                 } else {
@@ -1899,6 +1961,7 @@ where
                 }
             },
             FromScriptMsg::BroadcastStorageEvent(storage, url, key, old_value, new_value) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::BroadcastStorageEvent(storage, url, key, old_value, new_value)");
                 self.handle_broadcast_storage_event(
                     source_pipeline_id,
                     storage,
@@ -1909,6 +1972,7 @@ where
                 );
             },
             FromScriptMsg::MediaSessionEvent(pipeline_id, event) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::MediaSessionEvent(pipeline_id, event)");
                 // Unlikely at this point, but we may receive events coming from
                 // different media sessions, so we set the active media session based
                 // on Playing events.
@@ -1933,17 +1997,24 @@ where
                     EmbedderMsg::MediaSessionEvent(event),
                 ));
             },
-            FromScriptMsg::RequestAdapter(sender, options, ids) => self.handle_wgpu_request(
-                source_pipeline_id,
-                BrowsingContextId::from(source_top_ctx_id),
-                FromScriptMsg::RequestAdapter(sender, options, ids),
-            ),
-            FromScriptMsg::GetWebGPUChan(sender) => self.handle_wgpu_request(
-                source_pipeline_id,
-                BrowsingContextId::from(source_top_ctx_id),
-                FromScriptMsg::GetWebGPUChan(sender),
-            ),
+            FromScriptMsg::RequestAdapter(sender, options, ids) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::RequestAdapter(sender, options, ids)");
+                self.handle_wgpu_request(
+                    source_pipeline_id,
+                    BrowsingContextId::from(source_top_ctx_id),
+                    FromScriptMsg::RequestAdapter(sender, options, ids),
+                )
+            },
+            FromScriptMsg::GetWebGPUChan(sender) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::GetWebGPUChan(sender)");
+                self.handle_wgpu_request(
+                    source_pipeline_id,
+                    BrowsingContextId::from(source_top_ctx_id),
+                    FromScriptMsg::GetWebGPUChan(sender),
+                )
+            },
             FromScriptMsg::TitleChanged(pipeline, title) => {
+                println!("# [debug] constellation.rs, handle_request_from_script, FromScriptMsg::TitleChanged(pipeline, title)");
                 if let Some(pipeline) = self.pipelines.get_mut(&pipeline) {
                     pipeline.title = title;
                 }
@@ -2197,12 +2268,15 @@ where
             // Layout sends new sizes for all subframes. This needs to be reflected by all
             // frame trees in the navigation context containing the subframe.
             FromLayoutMsg::IFrameSizes(iframe_sizes) => {
+                println!("# [debug] constellation.rs, handle_request_from_layout, FromLayoutMsg::IFrameSizes(iframe_sizes)");
                 self.handle_iframe_size_msg(iframe_sizes);
             },
             FromLayoutMsg::PendingPaintMetric(pipeline_id, epoch) => {
+                println!("# [debug] constellation.rs, handle_request_from_layout, FromLayoutMsg::PendingPaintMetric(pipeline_id, epoch)");
                 self.handle_pending_paint_metric(pipeline_id, epoch);
             },
             FromLayoutMsg::ViewportConstrained(pipeline_id, constraints) => {
+                println!("# [debug] constellation.rs, handle_request_from_layout, FromLayoutMsg::ViewportConstrained(pipeline_id, constraints)");
                 self.handle_viewport_constrained_msg(pipeline_id, constraints);
             },
         }

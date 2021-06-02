@@ -616,6 +616,7 @@ impl ServoGlue {
     }
 
     fn handle_servo_events(&mut self) -> Result<(), &'static str> {
+        println!("# [debug] libsimpleservo/../lib.rs, handle_servo_events");
         for (browser_id, event) in self.servo.get_events() {
             match event {
                 EmbedderMsg::ChangePageTitle(title) => {

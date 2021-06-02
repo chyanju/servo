@@ -206,6 +206,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     /// This function must decide minimum/preferred inline-sizes based on its children's inline-
     /// sizes and the dimensions of any boxes it is responsible for flowing.
     fn bubble_inline_sizes(&mut self) {
+        // println!("# [checkpoint] flow.rs: bubble_inline_sizes");
         panic!("bubble_inline_sizes not yet implemented")
     }
 
@@ -531,6 +532,10 @@ pub trait ImmutableFlowUtils {
 
     /// Returns true if this flow is an inline flow.
     fn is_inline_flow(self) -> bool;
+
+    /// Yanju's Fix
+    /// Returns true if this flow is a flex flow.
+    fn is_flex_flow(self) -> bool;
 
     /// Dumps the flow tree for debugging.
     fn print(self, title: String);
@@ -1118,6 +1123,7 @@ impl BaseFlow {
     pub fn update_flags_if_needed(&mut self, style: &ComputedValues) {
         // For absolutely-positioned flows, changes to top/bottom/left/right can cause these flags
         // to get out of date:
+        println!("# [debug] flow.rs, update_flags_if_needed");
         if self
             .restyle_damage
             .contains(ServoRestyleDamage::REFLOW_OUT_OF_FLOW)
@@ -1126,6 +1132,8 @@ impl BaseFlow {
             // changes to the 'position' property trigger flow reconstruction.
             if self.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                 let logical_position = style.logical_position();
+                println!("  > [sneaky-test] block related operations detected.");
+                println!("    > [sneaky-test] logical position is: {:?}", logical_position);
                 self.flags.set(
                     FlowFlags::INLINE_POSITION_IS_STATIC,
                     logical_position.inline_start.is_auto() &&
@@ -1285,6 +1293,15 @@ impl<'a> ImmutableFlowUtils for &'a dyn Flow {
         }
     }
 
+    /// Yanju's Fix
+    /// Returns true if this flow is a flex flow.
+    fn is_flex_flow(self) -> bool {
+        match self.class() {
+            FlowClass::Flex => true,
+            _ => false,
+        }
+    }
+
     /// Dumps the flow tree for debugging.
     fn print(self, title: String) {
         let mut print_tree = PrintTree::new(title);
@@ -1339,6 +1356,7 @@ impl<'a> MutableFlowUtils for &'a mut dyn Flow {
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
     fn repair_style_and_bubble_inline_sizes(self, style: &crate::ServoArc<ComputedValues>) {
+        println!("# [debug] flow.rs, repair_style_and_bubble_inline_sizes");
         self.repair_style(style);
         self.mut_base().update_flags_if_needed(style);
         self.bubble_inline_sizes();

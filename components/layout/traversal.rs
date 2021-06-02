@@ -57,6 +57,7 @@ where
     ) where
         F: FnMut(E::ConcreteNode),
     {
+        println!("# [debug] traversal.rs, process_preorder, node is: {:?}", node);
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be
         // done by the HTML parser.
         unsafe { node.initialize_data() };
@@ -69,6 +70,7 @@ where
     }
 
     fn process_postorder(&self, _style_context: &mut StyleContext<E>, node: E::ConcreteNode) {
+        println!("# [debug] traversal.rs, process_postorder, node is: {:?}", node);
         construct_flows_at(&self.context, node);
     }
 
@@ -193,6 +195,7 @@ pub unsafe fn construct_flows_at_ancestors<'dom>(
     context: &LayoutContext,
     mut node: impl LayoutNode<'dom>,
 ) {
+    println!("# [debug] traversal.rs, construct_flows_at_ancestors, node is: {:?}", node);
     while let Some(element) = node.traversal_parent() {
         element.set_dirty_descendants();
         node = element.as_node();
@@ -205,11 +208,16 @@ pub unsafe fn construct_flows_at_ancestors<'dom>(
 #[allow(unsafe_code)]
 fn construct_flows_at<'dom>(context: &LayoutContext, node: impl LayoutNode<'dom>) {
     debug!("construct_flows_at: {:?}", node);
+    println!("# [checkpoint] traversal.rs, construct_flows_at, node is: {:?}", node);
 
     // Construct flows for this node.
     {
         let tnode = node.to_threadsafe();
 
+        // println!("  # [condition] tnode.restyle_damage() is: {:?}", tnode.restyle_damage());
+        // println!("  # [condition] map_or is: {}", node.as_element().map_or(false, |el| el.has_dirty_descendants()));
+
+        // debug
         // Always reconstruct if incremental layout is turned off.
         let nonincremental_layout = opts::get().nonincremental_layout;
         if nonincremental_layout ||
@@ -219,6 +227,7 @@ fn construct_flows_at<'dom>(context: &LayoutContext, node: impl LayoutNode<'dom>
         {
             let mut flow_constructor = FlowConstructor::new(context);
             if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {
+                println!("  # [checkpoint] >> traversal.rs, can't repair, calling flow_constructor.process");
                 flow_constructor.process(&tnode);
                 debug!(
                     "Constructed flow for {:?}: {:x}",

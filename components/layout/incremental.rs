@@ -24,6 +24,7 @@ bitflags! {
 
 impl dyn Flow {
     pub fn compute_layout_damage(&mut self) -> SpecialRestyleDamage {
+        // println!("# [checkpoint] compute_layout_damage");
         let mut special_damage = SpecialRestyleDamage::empty();
         let is_absolutely_positioned = self
             .base()
@@ -83,10 +84,14 @@ impl dyn Flow {
                 .remove(FlowFlags::HAS_COUNTER_AFFECTING_CHILDREN)
         }
 
+        // println!("# [output] bits: {}", special_damage.bits);
+        // println!("# [output] SpecialRestyleDamage::REFLOW_ENTIRE_DOCUMENT: {}", SpecialRestyleDamage::REFLOW_ENTIRE_DOCUMENT);
+        // println!("# [output] SpecialRestyleDamage::REFLOW_ENTIRE_DOCUMENT: {:?}", SpecialRestyleDamage::REFLOW_ENTIRE_DOCUMENT);
         special_damage
     }
 
     pub fn reflow_entire_document(&mut self) {
+        // println!("# [checkpoint] reflow_entire_document");
         let self_base = self.mut_base();
         self_base
             .restyle_damage

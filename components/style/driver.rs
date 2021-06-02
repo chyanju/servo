@@ -72,6 +72,8 @@ where
         .traversal_root()
         .expect("Should've ensured we needed to traverse");
 
+    println!("# [debug] driver.rs, traverse_dom, root is {:?}", root);
+
     let report_stats = should_report_statistics();
     let dump_stats = traversal.shared_context().options.dump_style_statistics;
     let start_time = if dump_stats {
@@ -105,6 +107,7 @@ where
     let mut nodes_remaining_at_current_depth = 1;
     discovered.push_back(unsafe { SendNode::new(root.as_node()) });
     while let Some(node) = discovered.pop_front() {
+        println!("  # [debug] driver.rs, traverse_dom, pop_front gets {:?}", node);
         let mut children_to_process = 0isize;
         let traversal_data = PerLevelTraversalData {
             current_dom_depth: depth,

@@ -531,6 +531,7 @@ pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a SharedStyleContext<'a>);
 impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
     #[inline]
     fn process(&self, flow: &mut dyn Flow) {
+        println!("$ [recursive-test] block.rs, process");
         if !flow.is_block_like() {
             return;
         }
@@ -1440,6 +1441,7 @@ impl BlockFlow {
     }
 
     fn calculate_absolute_block_size_and_margins(&mut self, shared_context: &SharedStyleContext) {
+        println!("$ [recursive-test] block.rs, calculate_absolute_block_size_and_margins");
         let opaque_self = OpaqueFlow::from_flow(self);
         let containing_block_block_size = self
             .containing_block_size(&shared_context.viewport_size(), opaque_self)
@@ -1860,14 +1862,21 @@ impl BlockFlow {
         let _scope = layout_debug_scope!("block::bubble_inline_sizes {:x}", self.base.debug_id());
 
         let mut flags = self.base.flags;
+
+        // debug
+        // flags.remove(FlowFlags::MARGINS_CANNOT_COLLAPSE);
+
         if self.definitely_has_zero_block_size() {
             // This is kind of a hack for Acid2. But it's a harmless one, because (a) this behavior
             // is unspecified; (b) it matches the behavior one would intuitively expect, since
             // floats don't flow around blocks that take up no space in the block direction.
+            // println!("# ==== block.rs#1: removing CONTAINS_TEXT_OR_REPLACED_FRAGMENTS ==== #");
             flags.remove(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
         } else if self.fragment.is_text_or_replaced() {
+            // println!("# ==== block.rs#2: inserting CONTAINS_TEXT_OR_REPLACED_FRAGMENTS ==== #");
             flags.insert(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
         } else {
+            // println!("# ==== block.rs#3: removing CONTAINS_TEXT_OR_REPLACED_FRAGMENTS ==== #");
             flags.remove(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
             for kid in self.base.children.iter() {
                 if kid
@@ -1875,6 +1884,7 @@ impl BlockFlow {
                     .flags
                     .contains(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS)
                 {
+                    // println!("# ==== block.rs#4: inserting CONTAINS_TEXT_OR_REPLACED_FRAGMENTS ==== #");
                     flags.insert(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
                     break;
                 }
@@ -1946,6 +1956,8 @@ impl BlockFlow {
             }
         }
 
+        // println!("  # [output] bubble_inline_sizes_for_block, left choose between {:?} and {:?}", left_float_width, left_float_width_accumulator);
+        // println!("  # [output] bubble_inline_sizes_for_block, right choose between {:?} and {:?}", right_float_width, right_float_width_accumulator);
         left_float_width = max(left_float_width, left_float_width_accumulator);
         right_float_width = max(right_float_width, right_float_width_accumulator);
 
@@ -1958,7 +1970,11 @@ impl BlockFlow {
             preferred_inline_size_of_children_without_text_or_replaced_fragments,
         );
 
+        // println!("  # [output] self.base.intrinsic_inline_sizes (old) is: {:?}", self.base.intrinsic_inline_sizes);
         self.base.intrinsic_inline_sizes = computation.finish();
+        // println!("  # [output] self.base.intrinsic_inline_sizes (new) is: {:?}", self.base.intrinsic_inline_sizes);
+        // println!("  # [output] self.base.flags (old) is: {:?}", self.base.flags);
+        // println!("  # [output] self.base.flags (new) is: {:?}", flags);
         self.base.flags = flags
     }
 
@@ -2157,6 +2173,7 @@ impl Flow for BlockFlow {
     /// This function must decide minimum/preferred inline-sizes based on its children's
     /// inline-sizes and the dimensions of any fragments it is responsible for flowing.
     fn bubble_inline_sizes(&mut self) {
+        println!("# [checkpoint] block.rs, bubble_inline_sizes");
         // If this block has a fixed width, just use that for the minimum and preferred width,
         // rather than bubbling up children inline width.
         // FIXME(emilio): This should probably be writing-mode-aware.
@@ -2164,6 +2181,7 @@ impl Flow for BlockFlow {
             Size::Auto => true,
             Size::LengthPercentage(ref lp) => lp.maybe_to_used_value(None).is_none(),
         };
+        println!("  # [debug] consult_children: {}", consult_children);
         self.bubble_inline_sizes_for_block(consult_children);
         self.fragment
             .restyle_damage

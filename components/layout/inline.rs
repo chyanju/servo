@@ -1473,6 +1473,7 @@ impl Flow for InlineFlow {
     }
 
     fn bubble_inline_sizes(&mut self) {
+        // println!("# [checkpoint] inline.rs: bubble_inline_sizes");
         self.update_restyle_damage();
 
         let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:x}", self.base.debug_id());
@@ -1482,6 +1483,7 @@ impl Flow for InlineFlow {
             kid.mut_base().floats = Floats::new(writing_mode);
         }
 
+        // println!("# ==== inline.rs: inserting CONTAINS_TEXT_OR_REPLACED_FRAGMENTS ==== #");
         self.base
             .flags
             .remove(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
@@ -1540,6 +1542,7 @@ impl Flow for InlineFlow {
                 },
             }
 
+            // println!("# ==== inline.rs: removing CONTAINS_TEXT_OR_REPLACED_FRAGMENTS ==== #");
             fragment
                 .restyle_damage
                 .remove(ServoRestyleDamage::BUBBLE_ISIZES);

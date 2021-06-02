@@ -917,8 +917,12 @@ impl Flow for FlexFlow {
         self.items = items;
 
         match self.main_mode {
-            Direction::Inline => self.inline_mode_bubble_inline_sizes(),
-            Direction::Block => self.block_mode_bubble_inline_sizes(),
+            Direction::Inline => {
+                self.inline_mode_bubble_inline_sizes()
+            },
+            Direction::Block => {
+                self.block_mode_bubble_inline_sizes()
+            },
         }
     }
 

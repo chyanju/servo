@@ -74,6 +74,14 @@ use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::Image;
 use style::values::generics::counters::ContentItem;
 
+use std::io::{stdin, stdout, Read, Write};
+fn pause() {
+    let mut stdout = stdout();
+    stdout.write(b"Press Enter to continue...").unwrap();
+    stdout.flush().unwrap();
+    stdin().read(&mut [0]).unwrap();
+}
+
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
 pub enum ConstructionResult {
@@ -402,6 +410,8 @@ where
 
     /// Builds the fragment for the given block or subclass thereof.
     fn build_fragment_for_block(&self, node: &ConcreteThreadSafeLayoutNode) -> Fragment {
+        // println!("# [checkpoint>>] build_fragment_for_block");
+        // pause();
         let specific_fragment_info = match node.type_id() {
             Some(LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement)) => {
                 SpecificFragmentInfo::Iframe(IframeFragmentInfo::new(node))
@@ -732,6 +742,8 @@ where
 
         // Perform a final flush of any inline fragments that we were gathering up to handle {ib}
         // splits, after stripping ignorable whitespace.
+        // println!("# [checkpoint>>] about to flush");
+        // pause();
         self.flush_inline_fragments_to_flow(
             inline_fragment_accumulator,
             &mut flow,
@@ -741,6 +753,8 @@ where
         );
 
         // The flow is done.
+        // println!("# [checkpoint>>] about to finish");
+        // pause();
         legalizer.finish(&mut flow);
         flow.finish();
 
@@ -779,6 +793,8 @@ where
         flow: FlowRef,
         node: &ConcreteThreadSafeLayoutNode,
     ) -> ConstructionResult {
+        // println!("# [checkpoint>>] build_flow_for_block_like");
+        // pause();
         let mut fragments = IntermediateInlineFragments::new();
         let node_is_input_or_text_area = node.type_id() ==
             Some(LayoutNodeType::Element(LayoutElementType::HTMLInputElement)) ||
@@ -895,9 +911,11 @@ where
         float_kind: Option<FloatKind>,
     ) -> ConstructionResult {
         if node.style(self.style_context()).is_multicol() {
+            // println!("# [checkpoint] build_flow_for_block, multicol");
             return self.build_flow_for_multicol(node, float_kind);
         }
 
+        // println!("# [checkpoint] build_flow_for_block, normal");
         let fragment = self.build_fragment_for_block(node);
         let flow = FlowRef::new(Arc::new(BlockFlow::from_fragment_and_float_kind(
             fragment, float_kind,
@@ -1662,6 +1680,12 @@ where
     /// TODO(pcwalton): Add some more fast paths, like toggling `display: none`, adding block kids
     /// to block parents with no {ib} splits, adding out-of-flow kids, etc.
     pub fn repair_if_possible(&mut self, node: &ConcreteThreadSafeLayoutNode) -> bool {
+        // println!("# [checkpoint] repair_if_possible");
+
+        // debug: force can't repair
+        // return false;
+        // return true;
+
         // We can skip reconstructing the flow if we don't have to reconstruct and none of our kids
         // did either.
         //
@@ -1669,9 +1693,14 @@ where
         // them.  NOTE: Make sure not to bail out early before resetting all the flags!
         let mut need_to_reconstruct = false;
 
+        // node.what_is_my_type(); // &ConcreteThreadSafeLayoutNode
+        // node.style(self.style_context()).what_is_my_type(); // BuilderArc<style::properties::ComputedValues>
+
         // If the node has display: none, it's possible that we haven't even
         // styled the children once, so we need to bailout early here.
         if node.style(self.style_context()).get_box().clone_display() == Display::None {
+            // println!("# [checkpoint>>] repair_if_possible, branch out #1");
+            // pause();
             return false;
         }
 
@@ -1686,6 +1715,8 @@ where
         }
 
         if need_to_reconstruct {
+            // println!("# [checkpoint>>] repair_if_possible, branch out #2");
+            // pause();
             return false;
         }
 
@@ -1693,6 +1724,8 @@ where
             .restyle_damage()
             .contains(ServoRestyleDamage::RECONSTRUCT_FLOW)
         {
+            // println!("# [checkpoint>>] repair_if_possible, branch out #3");
+            // pause();
             return false;
         }
 
@@ -1701,30 +1734,60 @@ where
             let style = node.style(self.style_context());
 
             if style.can_be_fragmented() || style.is_multicol() {
+                // println!("# [checkpoint>>] repair_if_possible, branch out #4");
+                // pause();
                 return false;
             }
 
             let damage = node.restyle_damage();
+            // println!("# [output] restyle damage: {}", damage);
             let mut data = node.mutate_layout_data().unwrap();
 
             match *node.construction_result_mut(&mut *data) {
-                ConstructionResult::None => true,
+                ConstructionResult::None => {
+                    println!("  # [repair-match-0] ConstructionResult::None");
+                    true
+                },
                 ConstructionResult::Flow(ref mut flow, _) => {
+                    println!("  # [repair-match-0] ConstructionResult::Flow");
+
+                    // debug
+                    // return false;
+
                     // The node's flow is of the same type and has the same set of children and can
                     // therefore be repaired by simply propagating damage and style to the flow.
-                    if !flow.is_block_flow() {
+                    // if !flow.is_block_flow() {
+                    //     println!("    ### [repair-match-0] ConstructionResult::Flow > branch out false");
+                    //     // pause();
+                    //     return false;
+                    // }
+                    // Yanju's Fix
+                    if !flow.is_block_flow() && !flow.is_flex_flow() {
+                        println!("    ### [repair-match-0] ConstructionResult::Flow > branch out false");
+                        // pause();
                         return false;
                     }
 
+                    // debug
+                    // return false;
+                    println!("    ### [repair-match-0] ConstructionResult::Flow > branch in");
+
                     let flow = FlowRef::deref_mut(flow);
                     flow.mut_base().restyle_damage.insert(damage);
+                    // debug
+                    // flow.mut_base().restyle_damage.remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW);
+                    // flow.mut_base().restyle_damage.remove(ServoRestyleDamage::REFLOW);
+                    // println!("  # [output] flow.mut_base().restyle_damage is: {}", flow.mut_base().restyle_damage);
                     flow.repair_style_and_bubble_inline_sizes(&style);
                     true
                 },
                 ConstructionResult::ConstructionItem(ConstructionItem::InlineFragments(
                     ref mut inline_fragments_construction_result,
                 )) => {
+                    println!("  # [repair-match-0] ConstructionResult::ConstructionItem#0");
                     if !inline_fragments_construction_result.splits.is_empty() {
+                        // println!("# [checkpoint>>] repair_if_possible, branch out #6");
+                        // pause();
                         return false;
                     }
 
@@ -1744,6 +1807,7 @@ where
 
                         match fragment.specific {
                             SpecificFragmentInfo::InlineBlock(ref mut inline_block_fragment) => {
+                                println!("  # [repair-match-1] SpecificFragmentInfo::InlineBlock");
                                 let flow_ref =
                                     FlowRef::deref_mut(&mut inline_block_fragment.flow_ref);
                                 flow_ref.mut_base().restyle_damage.insert(damage);
@@ -1753,6 +1817,7 @@ where
                             SpecificFragmentInfo::InlineAbsoluteHypothetical(
                                 ref mut inline_absolute_hypothetical_fragment,
                             ) => {
+                                println!("  # [repair-match-1] SpecificFragmentInfo::InlineAbsoluteHypothetical");
                                 let flow_ref = FlowRef::deref_mut(
                                     &mut inline_absolute_hypothetical_fragment.flow_ref,
                                 );
@@ -1763,6 +1828,7 @@ where
                             SpecificFragmentInfo::InlineAbsolute(
                                 ref mut inline_absolute_fragment,
                             ) => {
+                                println!("  # [repair-match-1] SpecificFragmentInfo::InlineAbsolute");
                                 let flow_ref =
                                     FlowRef::deref_mut(&mut inline_absolute_fragment.flow_ref);
                                 flow_ref.mut_base().restyle_damage.insert(damage);
@@ -1770,18 +1836,23 @@ where
                                 flow_ref.repair_style_and_bubble_inline_sizes(&style);
                             },
                             SpecificFragmentInfo::ScannedText(_) => {
+                                println!("  # [repair-match-1] SpecificFragmentInfo::ScannedText");
                                 // Text fragments in ConstructionResult haven't been scanned yet
                                 unreachable!()
                             },
                             SpecificFragmentInfo::GeneratedContent(_) |
                             SpecificFragmentInfo::UnscannedText(_) => {
+                                println!("  # [repair-match-1] SpecificFragmentInfo::GeneratedContent or UnscannedText");
                                 // We can't repair this unscanned text; we need to update the
                                 // scanned text fragments.
                                 //
                                 // TODO: Add code to find and repair the ScannedText fragments?
+                                // println!("# [checkpoint>>] repair_if_possible, branch out #7");
+                                // pause();
                                 return false;
                             },
                             _ => {
+                                println!("  # [repair-match-1] _");
                                 fragment.repair_style(&style);
                                 set_has_newly_constructed_flow_flag = true;
                             },
@@ -1789,12 +1860,18 @@ where
                     }
                     true
                 },
-                ConstructionResult::ConstructionItem(_) => false,
+                ConstructionResult::ConstructionItem(_) => {
+                    println!("  # [repair-match-0] ConstructionResult::ConstructionItem#1");
+                    false
+                },
             }
         };
         if set_has_newly_constructed_flow_flag {
             node.insert_flags(LayoutDataFlags::HAS_NEWLY_CONSTRUCTED_FLOW);
         }
+        // println!("# [checkpoint] repair_if_possible, all the way to the end, result is: {}", result);
+        // println!("# [checkpoint>>] repair_if_possible, branch out #0, result: {}", result);
+        // pause();
         return result;
     }
 }
@@ -1812,6 +1889,8 @@ where
     // TODO: This should actually consult the table in that section to get the
     // final computed value for 'display'.
     fn process(&mut self, node: &ConcreteThreadSafeLayoutNode) {
+        // println!("# [checkpoint>>] process");
+        // pause();
         node.insert_flags(LayoutDataFlags::HAS_NEWLY_CONSTRUCTED_FLOW);
 
         let style = node.style(self.style_context());
@@ -1867,11 +1946,13 @@ where
         match (display, float, positioning) {
             // `display: none` contributes no flow construction result.
             (Display::None, _, _) => {
+                // println!("# [checkpoint] process: None");
                 self.set_flow_construction_result(node, ConstructionResult::None);
             },
 
             // Table items contribute table flow construction results.
             (Display::Table, float_value, _) => {
+                // println!("# [checkpoint] process: build_flow_for_table");
                 let construction_result = self.build_flow_for_table(node, float_value);
                 self.set_flow_construction_result(node, construction_result)
             },
@@ -1883,6 +1964,7 @@ where
             // flow here - instead, let it match the inline case
             // below.
             (Display::Block, _, Position::Absolute) | (Display::Block, _, Position::Fixed) => {
+                // println!("# [checkpoint] process: build_flow_for_block");
                 let construction_result = self.build_flow_for_block(node, None);
                 self.set_flow_construction_result(node, construction_result)
             },
@@ -1893,6 +1975,7 @@ where
             (Display::Inline, _, Position::Fixed) |
             (Display::InlineBlock, _, Position::Absolute) |
             (Display::InlineBlock, _, Position::Fixed) => {
+                // println!("# [checkpoint] process: build_fragment_for_absolutely_positioned_inline");
                 let construction_result =
                     self.build_fragment_for_absolutely_positioned_inline(node);
                 self.set_flow_construction_result(node, construction_result)
@@ -1902,12 +1985,14 @@ where
             //
             // FIXME(pcwalton, #3307): This is not sufficient to handle floated generated content.
             (Display::Inline, Float::None, _) => {
+                // println!("# [checkpoint] process: build_fragments_for_inline");
                 let construction_result = self.build_fragments_for_inline(node);
                 self.set_flow_construction_result(node, construction_result)
             },
 
             // Inline-block items contribute inline fragment construction results.
             (Display::InlineBlock, Float::None, _) => {
+                // println!("# [checkpoint] process: build_fragment_for_inline_block_or_inline_flex");
                 let construction_result =
                     self.build_fragment_for_inline_block_or_inline_flex(node, Display::InlineBlock);
                 self.set_flow_construction_result(node, construction_result)
@@ -1915,18 +2000,21 @@ where
 
             // Table items contribute table flow construction results.
             (Display::TableCaption, _, _) => {
+                // println!("# [checkpoint] process: build_flow_for_table_caption");
                 let construction_result = self.build_flow_for_table_caption(node);
                 self.set_flow_construction_result(node, construction_result)
             },
 
             // Table items contribute table flow construction results.
             (Display::TableColumnGroup, _, _) => {
+                // println!("# [checkpoint] process: build_flow_for_table_colgroup");
                 let construction_result = self.build_flow_for_table_colgroup(node);
                 self.set_flow_construction_result(node, construction_result)
             },
 
             // Table items contribute table flow construction results.
             (Display::TableColumn, _, _) => {
+                // println!("# [checkpoint] process: build_fragments_for_table_column");
                 let construction_result = self.build_fragments_for_table_column(node);
                 self.set_flow_construction_result(node, construction_result)
             },
@@ -1935,30 +2023,35 @@ where
             (Display::TableRowGroup, _, _) |
             (Display::TableHeaderGroup, _, _) |
             (Display::TableFooterGroup, _, _) => {
+                // println!("# [checkpoint] process: build_flow_for_table_rowgroup");
                 let construction_result = self.build_flow_for_table_rowgroup(node);
                 self.set_flow_construction_result(node, construction_result)
             },
 
             // Table items contribute table flow construction results.
             (Display::TableRow, _, _) => {
+                // println!("# [checkpoint] process: build_flow_for_table_row");
                 let construction_result = self.build_flow_for_table_row(node);
                 self.set_flow_construction_result(node, construction_result)
             },
 
             // Table items contribute table flow construction results.
             (Display::TableCell, _, _) => {
+                // println!("# [checkpoint] process: build_flow_for_table_cell");
                 let construction_result = self.build_flow_for_table_cell(node);
                 self.set_flow_construction_result(node, construction_result)
             },
 
             // Flex items contribute flex flow construction results.
             (Display::Flex, float_value, _) => {
+                // println!("# [checkpoint] process: build_flow_for_flex");
                 let float_kind = FloatKind::from_property(float_value);
                 let construction_result = self.build_flow_for_flex(node, float_kind);
                 self.set_flow_construction_result(node, construction_result)
             },
 
             (Display::InlineFlex, _, _) => {
+                // println!("# [checkpoint] process: build_fragment_for_inline_block_or_inline_flex");
                 let construction_result =
                     self.build_fragment_for_inline_block_or_inline_flex(node, Display::InlineFlex);
                 self.set_flow_construction_result(node, construction_result)
@@ -1972,8 +2065,10 @@ where
                 let float_kind = FloatKind::from_property(float_value);
                 // List items contribute their own special flows.
                 let construction_result = if display.is_list_item() {
+                    // println!("# [checkpoint] process: last match, build_flow_for_list_item");
                     self.build_flow_for_list_item(node, float_value)
                 } else {
+                    // println!("# [checkpoint] process: last match, build_flow_for_block");
                     self.build_flow_for_block(node, float_kind)
                 };
                 self.set_flow_construction_result(node, construction_result)

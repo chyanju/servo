@@ -123,6 +123,15 @@ use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
 
+use std::io::{stdin, stdout, Read, Write};
+fn pause() {
+    let mut stdout = stdout();
+    stdout.write(b"Press Enter to continue...").unwrap();
+    stdout.flush().unwrap();
+    stdin().read(&mut [0]).unwrap();
+}
+
+
 /// Information needed by the layout thread.
 pub struct LayoutThread {
     /// The ID of the pipeline that we belong to.
@@ -589,6 +598,7 @@ impl LayoutThread {
             rw_data: &rw_data,
             possibly_locked_rw_data: &mut possibly_locked_rw_data,
         };
+        println!("# [debug] lib.rs, start, self.handle_request");
         while self.handle_request(&mut rw_data) {
             // Loop indefinitely.
         }
@@ -675,25 +685,36 @@ impl LayoutThread {
 
         self.busy.store(true, Ordering::Relaxed);
         let result = match request {
-            Request::FromPipeline(LayoutControlMsg::SetScrollStates(new_scroll_states)) => self
-                .handle_request_helper(
+            Request::FromPipeline(LayoutControlMsg::SetScrollStates(new_scroll_states)) => { 
+                println!("# [debug] lib.rs, handle_request, Request::FromPipeline(LayoutControlMsg::SetScrollStates(new_scroll_states))");
+                self.handle_request_helper(
                     Msg::SetScrollStates(new_scroll_states),
                     possibly_locked_rw_data,
-                ),
+                )
+            },
             Request::FromPipeline(LayoutControlMsg::GetCurrentEpoch(sender)) => {
+                println!("# [debug] lib.rs, handle_request, Request::FromPipeline(LayoutControlMsg::GetCurrentEpoch(sender))");
                 self.handle_request_helper(Msg::GetCurrentEpoch(sender), possibly_locked_rw_data)
             },
-            Request::FromPipeline(LayoutControlMsg::GetWebFontLoadState(sender)) => self
-                .handle_request_helper(Msg::GetWebFontLoadState(sender), possibly_locked_rw_data),
+            Request::FromPipeline(LayoutControlMsg::GetWebFontLoadState(sender)) => {
+                println!("# [debug] lib.rs, handle_request, Request::FromPipeline(LayoutControlMsg::GetWebFontLoadState(sender))");
+                self.handle_request_helper(Msg::GetWebFontLoadState(sender), possibly_locked_rw_data)
+            },
             Request::FromPipeline(LayoutControlMsg::ExitNow) => {
+                println!("# [debug] lib.rs, handle_request, Request::FromPipeline(LayoutControlMsg::ExitNow)");
                 self.handle_request_helper(Msg::ExitNow, possibly_locked_rw_data)
             },
             Request::FromPipeline(LayoutControlMsg::PaintMetric(epoch, paint_time)) => {
+                println!("# [debug] lib.rs, handle_request, Request::FromPipeline(LayoutControlMsg::PaintMetric(epoch, paint_time))");
                 self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
                 true
             },
-            Request::FromScript(msg) => self.handle_request_helper(msg, possibly_locked_rw_data),
+            Request::FromScript(msg) => {
+                println!("# [debug] lib.rs, handle_request, Request::FromScript(msg)");
+                self.handle_request_helper(msg, possibly_locked_rw_data)
+            },
             Request::FromFontCache => {
+                println!("# [debug] lib.rs, handle_request, Request::FromFontCache");
                 let _rw_data = possibly_locked_rw_data.lock();
                 self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
                 font_context::invalidate_font_caches();
@@ -717,6 +738,7 @@ impl LayoutThread {
 
         match request {
             Msg::AddStylesheet(stylesheet, before_stylesheet) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::AddStylesheet(stylesheet, before_stylesheet)");
                 let guard = stylesheet.shared_lock.read();
                 self.handle_add_stylesheet(&stylesheet, &guard);
 
@@ -732,17 +754,23 @@ impl LayoutThread {
                 }
             },
             Msg::RemoveStylesheet(stylesheet) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::RemoveStylesheet(stylesheet)");
                 let guard = stylesheet.shared_lock.read();
                 self.stylist
                     .remove_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard);
             },
-            Msg::SetQuirksMode(mode) => self.handle_set_quirks_mode(mode),
+            Msg::SetQuirksMode(mode) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::SetQuirksMode(mode)");
+                self.handle_set_quirks_mode(mode)
+            },
             Msg::GetRPC(response_chan) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::GetRPC(response_chan)");
                 response_chan
                     .send(Box::new(LayoutRPCImpl(self.rw_data.clone())) as Box<dyn LayoutRPC + Send>)
                     .unwrap();
             },
             Msg::Reflow(data) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::Reflow(data)");
                 let mut data = ScriptReflowResult::new(data);
                 profile(
                     profile_time::ProfilerCategory::LayoutPerform,
@@ -752,9 +780,11 @@ impl LayoutThread {
                 );
             },
             Msg::SetScrollStates(new_scroll_states) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::SetScrollStates(new_scroll_states)");
                 self.set_scroll_states(new_scroll_states, possibly_locked_rw_data);
             },
             Msg::UpdateScrollStateFromScript(state) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::UpdateScrollStateFromScript(state)");
                 let mut rw_data = possibly_locked_rw_data.lock();
                 rw_data
                     .scroll_offsets
@@ -768,22 +798,30 @@ impl LayoutThread {
                 );
             },
             Msg::CollectReports(reports_chan) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::CollectReports(reports_chan)");
                 self.collect_reports(reports_chan, possibly_locked_rw_data);
             },
             Msg::GetCurrentEpoch(sender) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::GetCurrentEpoch(sender)");
                 let _rw_data = possibly_locked_rw_data.lock();
                 sender.send(self.epoch.get()).unwrap();
             },
             Msg::GetWebFontLoadState(sender) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::GetWebFontLoadState(sender)");
                 let _rw_data = possibly_locked_rw_data.lock();
                 let outstanding_web_fonts = self.outstanding_web_fonts.load(Ordering::SeqCst);
                 sender.send(outstanding_web_fonts != 0).unwrap();
             },
-            Msg::CreateLayoutThread(info) => self.create_layout_thread(info),
+            Msg::CreateLayoutThread(info) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::CreateLayoutThread(info)");
+                self.create_layout_thread(info)
+            },
             Msg::SetFinalUrl(final_url) => {
+                println!("# [debug] handle_request_helper, Msg::SetFinalUrl(final_url)");
                 self.url = final_url;
             },
             Msg::RegisterPaint(name, mut properties, painter) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::RegisterPaint(name, mut properties, painter)");
                 debug!("Registering the painter");
                 let properties = properties
                     .drain(..)
@@ -801,16 +839,19 @@ impl LayoutThread {
                 self.registered_painters.0.insert(name, registered_painter);
             },
             Msg::PrepareToExit(response_chan) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::PrepareToExit(response_chan)");
                 self.prepare_to_exit(response_chan);
                 return false;
             },
             // Receiving the Exit message at this stage only happens when layout is undergoing a "force exit".
             Msg::ExitNow => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::ExitNow");
                 debug!("layout: ExitNow received");
                 self.exit_now();
                 return false;
             },
             Msg::SetNavigationStart(time) => {
+                println!("# [debug] lib.rs, handle_request_helper, Msg::SetNavigationStart(time)");
                 self.paint_time_metrics.set_navigation_start(time);
             },
         }
@@ -1168,6 +1209,7 @@ impl LayoutThread {
         data: &mut ScriptReflowResult,
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
     ) {
+        println!("# [debug] lib.rs, handle_reflow");
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
@@ -1340,6 +1382,12 @@ impl LayoutThread {
 
         if viewport_size_changed {
             if let Some(mut flow) = self.try_get_layout_root(root_element.as_node()) {
+                // =========================================================== //
+                // ===================== analysis notice ===================== //
+                // =========================================================== //
+                // if the viewport size has changed, reflow *all* the nodes
+                // the `reflow_all_nodes` here iterate children in a DFS way
+                // and set the dirty bits of every one of them
                 LayoutThread::reflow_all_nodes(FlowRef::deref_mut(&mut flow));
             }
         }
@@ -1387,6 +1435,7 @@ impl LayoutThread {
             // Stash the data on the element for processing by the style system.
             style_data.hint.insert(restyle.hint.into());
             style_data.damage = restyle.damage;
+            // println!("  # [output] Noting restyle for {:?}: {:?}", el, style_data);
             debug!("Noting restyle for {:?}: {:?}", el, style_data);
         }
 
@@ -1425,7 +1474,9 @@ impl LayoutThread {
             RecalcStyleAndConstructFlows::pre_traverse(dirty_root, shared)
         };
 
+        println!("  # [checkpoint] should_traverse?");
         if token.should_traverse() {
+            println!("  # [checkpoint] should_traverse? -> yes!");
             // Recalculate CSS styles and rebuild flows and fragments.
             profile(
                 profile_time::ProfilerCategory::LayoutStyleRecalc,
@@ -1433,10 +1484,12 @@ impl LayoutThread {
                 self.time_profiler_chan.clone(),
                 || {
                     // Perform CSS selector matching and flow construction.
+                    println!("  # [checkpoint] >> calling traverse_dom");
                     let root = driver::traverse_dom::<
                         ServoLayoutElement,
                         RecalcStyleAndConstructFlows,
                     >(&traversal, token, thread_pool);
+                    println!("  # [checkpoint] >> calling construct_flows_at_ancestors");
                     unsafe {
                         construct_flows_at_ancestors(traversal.context(), root.as_node());
                     }
@@ -1481,8 +1534,11 @@ impl LayoutThread {
         // GC the rule tree if some heuristics are met.
         layout_context.style_context.stylist.rule_tree().maybe_gc();
 
+        // println!("# [checkpoint>>>] before perform_post_style_recalc_layout_passes");
+        // pause();
         // Perform post-style recalculation layout passes.
         if let Some(mut root_flow) = self.root_flow.borrow().clone() {
+            println!("  # [checkpoint] >> calling perform_post_style_recalc_layout_passes");
             self.perform_post_style_recalc_layout_passes(
                 &mut root_flow,
                 &data.reflow_info,
@@ -1492,7 +1548,8 @@ impl LayoutThread {
                 &mut layout_context,
             );
         }
-
+        // println!("# [checkpoint>>>] after perform_post_style_recalc_layout_passes");
+        // pause();
         self.first_reflow.set(false);
         self.respond_to_query_if_necessary(
             &data.reflow_goal,
@@ -1775,6 +1832,9 @@ impl LayoutThread {
             },
         );
 
+        // println!("# [checkpoint>>>] before perform_post_main_layout_passes");
+        // pause();
+
         self.perform_post_main_layout_passes(
             data,
             root_flow,
@@ -1816,6 +1876,7 @@ impl LayoutThread {
     }
 
     fn reflow_all_nodes(flow: &mut dyn Flow) {
+        println!("# [debug] lib.rs, reflow_all_nodes");
         debug!("reflowing all nodes!");
         flow.mut_base().restyle_damage.insert(
             ServoRestyleDamage::REPAINT |
@@ -1825,6 +1886,7 @@ impl LayoutThread {
         );
 
         for child in flow.mut_base().child_iter_mut() {
+            // println!("  # [output] current child is: {:?}", child);
             LayoutThread::reflow_all_nodes(child);
         }
     }

@@ -188,6 +188,7 @@ impl App {
     }
 
     fn handle_events(&mut self) -> bool {
+        // println!("# [checkpoint] handle_events: {}", app_events);
         let mut browser = self.browser.borrow_mut();
 
         // FIXME:
@@ -228,6 +229,7 @@ impl App {
 }
 
 fn get_default_url() -> ServoUrl {
+    println!("# [checkpoint] get_default_url");
     // If the url is not provided, we fallback to the homepage in prefs,
     // or a blank page in case the homepage is not set either.
     let cwd = env::current_dir().unwrap();
