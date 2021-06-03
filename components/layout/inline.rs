@@ -45,6 +45,8 @@ use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::specified::text::TextOverflowSide;
 use unicode_bidi as bidi;
 
+use jutils::profile_compare_au;
+
 /// `Line`s are represented as offsets into the child list, rather than
 /// as an object that "owns" fragments. Choosing a different set of line
 /// breaks requires a new list of offsets, and possibly some splitting and
@@ -729,6 +731,12 @@ impl LineBreaker {
         // the second fragment. If there's no second fragment, the next line will start off empty.
         match (inline_start_fragment, inline_end_fragment) {
             (Some(mut inline_start_fragment), Some(mut inline_end_fragment)) => {
+
+                let before_inline_start_fragment_border_padding_inline_end = inline_start_fragment.border_padding.inline_end;
+                let before_inline_start_fragment_border_box_size_inline = inline_start_fragment.border_box.size.inline;
+                let before_inline_end_fragment_border_padding_inline_start = inline_end_fragment.border_padding.inline_start;
+                let before_inline_end_fragment_border_box_size_inline = inline_end_fragment.border_box.size.inline;
+
                 inline_start_fragment.border_padding.inline_end = Au(0);
                 if let Some(ref mut inline_context) = inline_start_fragment.inline_context {
                     for node in &mut inline_context.nodes {
@@ -748,6 +756,15 @@ impl LineBreaker {
                 }
                 inline_end_fragment.border_box.size.inline +=
                     inline_end_fragment.border_padding.inline_end;
+
+                let after_inline_start_fragment_border_padding_inline_end = inline_start_fragment.border_padding.inline_end;
+                let after_inline_start_fragment_border_box_size_inline = inline_start_fragment.border_box.size.inline;
+                let after_inline_end_fragment_border_padding_inline_start = inline_end_fragment.border_padding.inline_start;
+                let after_inline_end_fragment_border_box_size_inline = inline_end_fragment.border_box.size.inline;
+                /* YANJU-PROFILE */ profile_compare_au("inline.rs", "reflow_fragment", "[inline_start]Fragment.border_padding.inline_end", &before_inline_start_fragment_border_padding_inline_end, &after_inline_start_fragment_border_padding_inline_end);
+                /* YANJU-PROFILE */ profile_compare_au("inline.rs", "reflow_fragment", "[inline_start]Fragment.border_box.size.inline", &before_inline_start_fragment_border_box_size_inline, &after_inline_start_fragment_border_box_size_inline);
+                /* YANJU-PROFILE */ profile_compare_au("inline.rs", "reflow_fragment", "[inline_end]Fragment.border_padding.inline_start", &before_inline_end_fragment_border_padding_inline_start, &after_inline_end_fragment_border_padding_inline_start);
+                /* YANJU-PROFILE */ profile_compare_au("inline.rs", "reflow_fragment", "[inline_end]Fragment.border_box.size.inline", &before_inline_end_fragment_border_box_size_inline, &after_inline_end_fragment_border_box_size_inline);
 
                 self.push_fragment_to_line(
                     layout_context,
@@ -1106,6 +1123,10 @@ impl InlineFlow {
                         fragment.margin.inline_end -
                         fragment.border_box.size.inline
                 };
+                let before_fragment_border_box_start_i = fragment.border_box.start.i;
+                let before_fragment_border_box_start_b = fragment.border_box.start.b;
+                let before_fragment_border_box_size_block = fragment.border_box.size.block;
+                let before_fragment_border_box_size_inline = fragment.border_box.size.inline;
                 fragment.border_box = LogicalRect::new(
                     fragment.style.writing_mode,
                     border_start,
@@ -1113,6 +1134,15 @@ impl InlineFlow {
                     fragment.border_box.size.inline,
                     fragment.border_box.size.block,
                 );
+                let after_fragment_border_box_start_i = fragment.border_box.start.i;
+                let after_fragment_border_box_start_b = fragment.border_box.start.b;
+                let after_fragment_border_box_size_block = fragment.border_box.size.block;
+                let after_fragment_border_box_size_inline = fragment.border_box.size.inline;
+                /* YANJU-PROFILE */ profile_compare_au("inline.rs", "set_inline_fragment_positions", "Fragment.border_box.start.i", &before_fragment_border_box_start_i, &after_fragment_border_box_start_i);
+                /* YANJU-PROFILE */ profile_compare_au("inline.rs", "set_inline_fragment_positions", "Fragment.border_box.start.b", &before_fragment_border_box_start_b, &after_fragment_border_box_start_b);
+                /* YANJU-PROFILE */ profile_compare_au("inline.rs", "set_inline_fragment_positions", "Fragment.border_box.size.block", &before_fragment_border_box_size_block, &after_fragment_border_box_size_block);
+                /* YANJU-PROFILE */ profile_compare_au("inline.rs", "set_inline_fragment_positions", "Fragment.border_box.size.inline", &before_fragment_border_box_size_inline, &after_fragment_border_box_size_inline);
+
                 fragment.update_late_computed_inline_position_if_necessary();
 
                 if !fragment.is_inline_absolute() {
@@ -1177,11 +1207,24 @@ impl InlineFlow {
                 new_inline_size,
                 fragment.border_box.size.block,
             );
+
+            let before_fragment_border_box_start_i = fragment.border_box.start.i;
+            let before_fragment_border_box_start_b = fragment.border_box.start.b;
+            let before_fragment_border_box_size_block = fragment.border_box.size.block;
+            let before_fragment_border_box_size_inline = fragment.border_box.size.inline;
             fragment.border_box = LogicalRect::from_point_size(
                 fragment.style.writing_mode,
                 fragment.border_box.start,
                 new_size,
             );
+            let after_fragment_border_box_start_i = fragment.border_box.start.i;
+            let after_fragment_border_box_start_b = fragment.border_box.start.b;
+            let after_fragment_border_box_size_block = fragment.border_box.size.block;
+            let after_fragment_border_box_size_inline = fragment.border_box.size.inline;
+            /* YANJU-PROFILE */ profile_compare_au("inline.rs", "justify_inline_fragments", "Fragment.border_box.start.i", &before_fragment_border_box_start_i, &after_fragment_border_box_start_i);
+            /* YANJU-PROFILE */ profile_compare_au("inline.rs", "justify_inline_fragments", "Fragment.border_box.start.b", &before_fragment_border_box_start_b, &after_fragment_border_box_start_b);
+            /* YANJU-PROFILE */ profile_compare_au("inline.rs", "justify_inline_fragments", "Fragment.border_box.size.block", &before_fragment_border_box_size_block, &after_fragment_border_box_size_block);
+            /* YANJU-PROFILE */ profile_compare_au("inline.rs", "justify_inline_fragments", "Fragment.border_box.size.inline", &before_fragment_border_box_size_inline, &after_fragment_border_box_size_inline);
         }
     }
 
@@ -1200,6 +1243,8 @@ impl InlineFlow {
                 minimum_line_metrics,
                 Some(&line_metrics),
             );
+
+            let before_fragment_border_box_start_b = fragment.border_box.start.b;
 
             // Align the top of the fragment's border box with its ascent above the baseline.
             fragment.border_box.start.b =
@@ -1221,6 +1266,9 @@ impl InlineFlow {
             if !fragment.is_replaced_or_inline_block() {
                 fragment.border_box.start.b -= fragment.border_padding.block_start
             }
+
+            let after_fragment_border_box_start_b = fragment.border_box.start.b;
+            /* YANJU-PROFILE */ profile_compare_au("inline.rs", "set_block_fragment_positions", "Fragment.border_box.start.b", &before_fragment_border_box_start_b, &after_fragment_border_box_start_b);
 
             fragment.update_late_computed_block_position_if_necessary();
         }
@@ -1580,7 +1628,11 @@ impl Flow for InlineFlow {
         let inline_size = self.base.block_container_inline_size;
         let container_mode = self.base.block_container_writing_mode;
         let container_block_size = self.base.block_container_explicit_block_size;
+
+        let before_base_position_size_inline = self.base.position.size.inline;
         self.base.position.size.inline = inline_size;
+        let after_base_position_size_inline = self.base.position.size.inline;
+        /* YANJU-PROFILE */ profile_compare_au("inline.rs", "assign_inline_sizes", "BaseFlow.position.size.inline", &before_base_position_size_inline, &after_base_position_size_inline);
 
         {
             let this = &mut *self;

@@ -31,6 +31,8 @@ use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::flex::FlexBasis;
 use style::values::computed::{MaxSize, Size};
 
+use jutils::profile_compare_au;
+
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
 #[derive(Debug, Serialize)]

@@ -74,14 +74,6 @@ use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::Image;
 use style::values::generics::counters::ContentItem;
 
-use std::io::{stdin, stdout, Read, Write};
-fn pause() {
-    let mut stdout = stdout();
-    stdout.write(b"Press Enter to continue...").unwrap();
-    stdout.flush().unwrap();
-    stdin().read(&mut [0]).unwrap();
-}
-
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
 pub enum ConstructionResult {

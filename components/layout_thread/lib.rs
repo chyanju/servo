@@ -123,14 +123,6 @@ use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
 
-use std::io::{stdin, stdout, Read, Write};
-fn pause() {
-    let mut stdout = stdout();
-    stdout.write(b"Press Enter to continue...").unwrap();
-    stdout.flush().unwrap();
-    stdin().read(&mut [0]).unwrap();
-}
-
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {

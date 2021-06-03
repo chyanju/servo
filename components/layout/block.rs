@@ -69,6 +69,8 @@ use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::{LengthPercentageOrAuto, MaxSize, Size};
 
+use jutils::profile_compare_au;
+
 /// Information specific to floated blocks.
 #[derive(Clone, Serialize)]
 pub struct FloatedBlockInfo {
@@ -851,7 +853,10 @@ impl BlockFlow {
         if block_start_margin_value != Au(0) {
             for kid in self.base.child_iter_mut() {
                 let kid_base = kid.mut_base();
-                kid_base.position.start.b = kid_base.position.start.b + block_start_margin_value
+                let before_kid_base_position_start_b = kid_base.position.start.b;
+                kid_base.position.start.b = kid_base.position.start.b + block_start_margin_value;
+                let after_kid_base_position_start_b = kid_base.position.start.b;
+                /* YANJU-PROFILE */ profile_compare_au("block.rs", "adjust_fragments_for_collapsed_margins_if_root", "BaseFlow.position.start.b", &before_kid_base_position_start_b, &after_kid_base_position_start_b);
             }
         }
 
@@ -868,8 +873,14 @@ impl BlockFlow {
             self.fragment.border_box.size.block + block_start_margin_value + block_end_margin_value,
         );
 
+        let before_base_position_size_block = self.base.position.size.block;
+        let before_fragment_border_box_size_block = self.fragment.border_box.size.block;
         self.base.position.size.block = block_size;
         self.fragment.border_box.size.block = block_size;
+        let after_base_position_size_block = self.base.position.size.block;
+        let after_fragment_border_box_size_block = self.fragment.border_box.size.block;
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "adjust_fragments_for_collapsed_margins_if_root", "BaseFlow.position.size.block", &before_base_position_size_block, &after_base_position_size_block);
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "adjust_fragments_for_collapsed_margins_if_root", "Fragment.border_box.size.block", &before_fragment_border_box_size_block, &after_fragment_border_box_size_block);
     }
 
     // FIXME: Record enough info to deal with fragmented decorations.
@@ -988,11 +999,14 @@ impl BlockFlow {
                     {
                         let previous_bottom_margin = margin_collapse_info.current_float_ceiling();
 
+                        let before_kid_mut_base_position_start_b = kid.mut_base().position.start.b;
                         kid.mut_base().position.start.b = cur_b +
                             kid.base()
                                 .collapsible_margins
                                 .block_start_margin_for_noncollapsible_context() +
-                            previous_bottom_margin
+                            previous_bottom_margin;
+                        let after_kid_mut_base_position_start_b = kid.mut_base().position.start.b;
+                        /* YANJU-PROFILE */ profile_compare_au("block.rs", "assign_block_size_block_base", "Fragment.position.start.b", &before_kid_mut_base_position_start_b, &after_kid_mut_base_position_start_b);
                     }
                     kid.place_float_if_applicable();
                     if !kid.base().flags.is_float() {
@@ -1024,7 +1038,10 @@ impl BlockFlow {
                 kid.mut_base().floats = floats.clone();
                 if kid.base().flags.is_float() {
                     had_floated_children = true;
+                    let before_kid_mut_base_position_start_b = kid.mut_base().position.start.b;
                     kid.mut_base().position.start.b = cur_b;
+                    let after_kid_mut_base_position_start_b = kid.mut_base().position.start.b;
+                    /* YANJU-PROFILE */ profile_compare_au("block.rs", "assign_block_size_block_base", "Fragment.position.start.b", &before_kid_mut_base_position_start_b, &after_kid_mut_base_position_start_b);
                     {
                         let kid_block = kid.as_mut_block();
                         let float_ceiling = margin_collapse_info.current_float_ceiling();
@@ -1090,7 +1107,10 @@ impl BlockFlow {
                 translate_including_floats(&mut cur_b, clearance, &mut floats);
 
                 // At this point, `cur_b` is at the border edge of the child.
+                let before_kid_mut_base_position_start_b = kid.mut_base().position.start.b;
                 kid.mut_base().position.start.b = cur_b;
+                let after_kid_mut_base_position_start_b = kid.mut_base().position.start.b;
+                /* YANJU-PROFILE */ profile_compare_au("block.rs", "assign_block_size_block_base", "Fragment.position.start.b", &before_kid_mut_base_position_start_b, &after_kid_mut_base_position_start_b);
 
                 // Now pull out the child's outgoing floats. We didn't do this immediately after
                 // the `assign_block_size_for_inorder_child_if_necessary` call because clearance on
@@ -1115,7 +1135,10 @@ impl BlockFlow {
                     CollapsibleMargins::CollapseThrough(_) => {
                         let delta = margin_collapse_info.current_float_ceiling();
                         cur_b = cur_b + delta;
+                        let before_kid_base_position_start_b = kid_base.position.start.b;
                         kid_base.position.start.b = kid_base.position.start.b + delta;
+                        let after_kid_base_position_start_b = kid_base.position.start.b;
+                        /* YANJU-PROFILE */ profile_compare_au("block.rs", "assign_block_size_block_base", "Fragment.position.start.b", &before_kid_base_position_start_b, &after_kid_base_position_start_b);
                         delta
                     },
                     _ => Au(0),
@@ -1228,9 +1251,18 @@ impl BlockFlow {
 
             // Now that `cur_b` is at the block-end of the border box, compute the final border box
             // position.
+            let before_fragment_border_box_size_block = self.fragment.border_box.size.block;
+            let before_fragment_border_box_start_b = self.fragment.border_box.start.b;
+            let before_base_position_size_block = self.base.position.size.block;
             self.fragment.border_box.size.block = cur_b;
             self.fragment.border_box.start.b = Au(0);
             self.base.position.size.block = cur_b;
+            let after_fragment_border_box_size_block = self.fragment.border_box.size.block;
+            let after_fragment_border_box_start_b = self.fragment.border_box.start.b;
+            let after_base_position_size_block = self.base.position.size.block;
+            /* YANJU-PROFILE */ profile_compare_au("block.rs", "assign_block_size_block_base", "Fragment.border_box.size.blocck", &before_fragment_border_box_size_block, &after_fragment_border_box_size_block);
+            /* YANJU-PROFILE */ profile_compare_au("block.rs", "assign_block_size_block_base", "Fragment.border_box.start.b", &before_fragment_border_box_start_b, &after_fragment_border_box_start_b);
+            /* YANJU-PROFILE */ profile_compare_au("block.rs", "assign_block_size_block_base", "BaseFlow.position.size.block", &before_base_position_size_block, &after_base_position_size_block);
 
             self.propagate_early_absolute_position_info_to_children();
 
@@ -1369,8 +1401,20 @@ impl BlockFlow {
             self.base.position.start.b,
         );
         origin = origin.add_point(&float_offset).add_point(&margin_offset);
+        let before_base_position_start_b = self.base.position.start.b;
+        let before_base_position_start_i = self.base.position.start.i;
+        let before_base_position_size_inline = self.base.position.size.inline;
+        let before_base_position_size_block = self.base.position.size.block;
         self.base.position =
             LogicalRect::from_point_size(self.base.writing_mode, origin, self.base.position.size);
+        let after_base_position_start_b = self.base.position.start.b;
+        let after_base_position_start_i = self.base.position.start.i;
+        let after_base_position_size_inline = self.base.position.size.inline;
+        let after_base_position_size_block = self.base.position.size.block;
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "place_float", "BaseFlow.position.start.b", &before_base_position_start_b, &after_base_position_start_b);
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "place_float", "BaseFlow.position.start.i", &before_base_position_start_i, &after_base_position_start_i);
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "place_float", "BaseFlow.position.size.inline", &before_base_position_size_inline, &after_base_position_size_inline);
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "place_float", "BaseFlow.position.size.block", &before_base_position_size_block, &after_base_position_size_block);
     }
 
     pub fn explicit_block_containing_size(
@@ -1521,6 +1565,14 @@ impl BlockFlow {
         }
 
         let solution = solution.unwrap();
+
+        let before_fragment_margin_block_start = self.fragment.margin.block_start;
+        let before_fragment_margin_block_end = self.fragment.margin.block_end;
+        let before_fragment_border_box_start_b = self.fragment.border_box.start.b;
+        let before_base_position_start_b = self.base.position.start.b;
+        let before_fragment_border_box_size_block = self.fragment.border_box.size.block;
+        let before_base_position_size_block = self.base.position.size.block;
+
         self.fragment.margin.block_start = solution.margin_block_start;
         self.fragment.margin.block_end = solution.margin_block_end;
         self.fragment.border_box.start.b = Au(0);
@@ -1537,6 +1589,20 @@ impl BlockFlow {
 
         self.fragment.border_box.size.block = block_size;
         self.base.position.size.block = block_size;
+
+        let after_fragment_margin_block_start = self.fragment.margin.block_start;
+        let after_fragment_margin_block_end = self.fragment.margin.block_end;
+        let after_fragment_border_box_start_b = self.fragment.border_box.start.b;
+        let after_base_position_start_b = self.base.position.start.b;
+        let after_fragment_border_box_size_block = self.fragment.border_box.size.block;
+        let after_base_position_size_block = self.base.position.size.block;
+
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "calculate_absolute_block_size_and_margins", "Fragment.margin.block_start", &before_fragment_margin_block_start, &after_fragment_margin_block_start);
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "calculate_absolute_block_size_and_margins", "Fragment.margin.block_end", &before_fragment_margin_block_end, &after_fragment_margin_block_end);
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "calculate_absolute_block_size_and_margins", "Fragment.border_box.start.b", &before_fragment_border_box_start_b, &after_fragment_border_box_start_b);
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "calculate_absolute_block_size_and_margins", "BaseFlow.position.start.b", &before_base_position_start_b, &after_base_position_start_b);
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "calculate_absolute_block_size_and_margins", "Fragment.border_box.size.block", &before_fragment_border_box_size_block, &after_fragment_border_box_size_block);
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "calculate_absolute_block_size_and_margins", "BaseFlow.position.size.block", &before_base_position_size_block, &after_base_position_size_block);
 
         self.base
             .restyle_damage
@@ -1636,6 +1702,7 @@ impl BlockFlow {
                     .contains(FlowFlags::INLINE_POSITION_IS_STATIC) &&
                     kid_base.restyle_damage.contains(reflow_damage)
                 {
+                    let before_kid_base_position_start_i = kid_base.position.start.i;
                     kid_base.position.start.i =
                         if kid_mode.is_bidi_ltr() == containing_block_mode.is_bidi_ltr() {
                             inline_start_content_edge
@@ -1643,6 +1710,8 @@ impl BlockFlow {
                             // The kid's inline 'start' is at the parent's 'end'
                             inline_end_content_edge
                         };
+                    let after_kid_base_position_start_i = kid_base.position.start.i;
+                    /* YANJU-PROFILE */ profile_compare_au("block.rs", "propagate_assigned_inline_size_to_children", "BaseFlow.position.start.i", &before_kid_base_position_start_i, &after_kid_base_position_start_i);
                 }
                 kid_base.block_container_inline_size = content_inline_size;
                 kid_base.block_container_writing_mode = containing_block_mode;
@@ -1779,7 +1848,10 @@ impl BlockFlow {
             } else {
                 Au(0)
             };
+            let before_base_position_start_i = self.base.position.start.i;
             self.base.position.start.i = content_box.start.i + inline_offset;
+            let after_base_position_start_i = self.base.position.start.i;
+            /* YANJU-PROFILE */ profile_compare_au("block.rs", "assign_inline_position_for_formatting_context", "BaseFlow.position.start.i", &before_base_position_start_i, &after_base_position_start_i);
             // Handle the end margin sliding behind the float.
             let end = content_box.size.inline - rect.start.i - rect.size.inline;
             let inline_end_offset = if self.fragment.margin.inline_end < end {
@@ -1812,7 +1884,11 @@ impl BlockFlow {
             },
             None => max(min_inline_size, min(available_inline_size, max_inline_size)),
         };
+
+        let before_base_position_size_inline = self.base.position.size.inline;
         self.base.position.size.inline = inline_size + self.fragment.margin.inline_start_end();
+        let after_base_position_size_inline = self.base.position.size.inline;
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "assign_inline_position_for_formatting_context", "BaseFlow.position.size.inline", &before_base_position_size_inline, &after_base_position_size_inline);
 
         // If float speculation failed, fixup our layout, and re-layout all the children.
         if self.fragment.margin_box_inline_size() != self.base.position.size.inline {
@@ -1820,7 +1896,10 @@ impl BlockFlow {
             // Fix-up our own layout.
             // We can't just traverse_flow_tree_preorder ourself, because that would re-run
             // float speculation, instead of acting on the actual results.
+            let before_fragment_border_box_size_inline = self.fragment.border_box.size.inline;
             self.fragment.border_box.size.inline = inline_size;
+            let after_fragment_border_box_size_inline = self.fragment.border_box.size.inline;
+            /* YANJU-PROFILE */ profile_compare_au("block.rs", "assign_inline_position_for_formatting_context", "Fragment.border_box.size.inline", &before_fragment_border_box_size_inline, &after_fragment_border_box_size_inline);
             // Assign final-final inline sizes on all our children.
             self.assign_inline_sizes(layout_context);
             // Re-run layout on our children.
@@ -1971,7 +2050,13 @@ impl BlockFlow {
         );
 
         // println!("  # [output] self.base.intrinsic_inline_sizes (old) is: {:?}", self.base.intrinsic_inline_sizes);
+        let before_base_intrinsic_inline_sizes_minimum_inline_size = self.base.intrinsic_inline_sizes.minimum_inline_size;
+        let before_base_intrinsic_inline_sizes_preferred_inline_size = self.base.intrinsic_inline_sizes.preferred_inline_size;
         self.base.intrinsic_inline_sizes = computation.finish();
+        let after_base_intrinsic_inline_sizes_minimum_inline_size = self.base.intrinsic_inline_sizes.minimum_inline_size;
+        let after_base_intrinsic_inline_sizes_preferred_inline_size = self.base.intrinsic_inline_sizes.preferred_inline_size;
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "bubble_inline_sizes_for_block", "BaseFlow.intrinsic_inline_sizes.minimum_inline_size", &before_base_intrinsic_inline_sizes_minimum_inline_size, &after_base_intrinsic_inline_sizes_minimum_inline_size);
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "bubble_inline_sizes_for_block", "BaseFlow.intrinsic_inline_sizes.preferred_inline_size", &before_base_intrinsic_inline_sizes_preferred_inline_size, &after_base_intrinsic_inline_sizes_preferred_inline_size);
         // println!("  # [output] self.base.intrinsic_inline_sizes (new) is: {:?}", self.base.intrinsic_inline_sizes);
         // println!("  # [output] self.base.flags (old) is: {:?}", self.base.flags);
         // println!("  # [output] self.base.flags (new) is: {:?}", flags);
@@ -2028,7 +2113,14 @@ impl BlockFlow {
     pub fn initialize_container_size_for_root(&mut self, shared_context: &SharedStyleContext) {
         if self.is_root() {
             debug!("Setting root position");
+            let before_base_position_start_i = self.base.position.start.i;
+            let before_base_position_start_b = self.base.position.start.b;
             self.base.position.start = LogicalPoint::zero(self.base.writing_mode);
+            let after_base_position_start_i = self.base.position.start.i;
+            let after_base_position_start_b = self.base.position.start.b;
+            /* YANJU-PROFILE */ profile_compare_au("block.rs", "initialize_container_size_for_root", "BaseFlow.position.start.i", &before_base_position_start_i, &after_base_position_start_i);
+            /* YANJU-PROFILE */ profile_compare_au("block.rs", "initialize_container_size_for_root", "BaseFlow.position.start.b", &before_base_position_start_b, &after_base_position_start_b);
+
             self.base.block_container_inline_size =
                 LogicalSize::from_physical(self.base.writing_mode, shared_context.viewport_size())
                     .inline;
@@ -2067,9 +2159,13 @@ impl BlockFlow {
         } else {
             Au(0)
         };
+
+        let before_fragment_border_box_size_inline = self.fragment.border_box.size.inline;
         self.fragment.border_box.size.inline = self.fragment.border_box.size.inline -
             speculated_left_float_size -
-            speculated_right_float_size
+            speculated_right_float_size;
+        let after_fragment_border_box_size_inline = self.fragment.border_box.size.inline;
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "guess_inline_size_for_block_formatting_context_if_necessary", "Fragment.border_box.size.inline", &before_fragment_border_box_size_inline, &after_fragment_border_box_size_inline);
     }
 
     fn definitely_has_zero_block_size(&self) -> bool {
@@ -2577,7 +2673,10 @@ impl Flow for BlockFlow {
                 .inline_end
                 .is_auto()
         {
-            self.base.position.start.i = inline_position
+            let before_base_position_start_i = self.base.position.start.i;
+            self.base.position.start.i = inline_position;
+            let after_base_position_start_i = self.base.position.start.i;
+            /* YANJU-PROFILE */ profile_compare_au("block.rs", "update_late_computed_inline_position_if_necessary", "BaseFlow.position.start.i", &before_base_position_start_i, &after_base_position_start_i);
         }
     }
 
@@ -2593,7 +2692,10 @@ impl Flow for BlockFlow {
                 .is_auto() &&
             self.fragment.style().logical_position().block_end.is_auto()
         {
-            self.base.position.start.b = block_position
+            let before_base_position_start_b = self.base.position.start.b;
+            self.base.position.start.b = block_position;
+            let after_base_position_start_b = self.base.position.start.b;
+            /* YANJU-PROFILE */ profile_compare_au("block.rs", "update_late_computed_block_position_if_necessary", "BaseFlow.position.start.b", &before_base_position_start_b, &after_base_position_start_b);
         }
     }
 
@@ -2854,7 +2956,10 @@ pub trait ISizeAndMarginsComputer {
         // We also resize the block itself, to ensure that overflow is not calculated
         // as the inline-size of our parent. We might be smaller and we might be larger if we
         // overflow.
+        let before_base_position_size_inline = block.mut_base().position.size.inline;
         block.mut_base().position.size.inline = inline_size + extra_inline_size_from_margin;
+        let after_base_position_size_inline = block.mut_base().position.size.inline;
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "set_inline_size_constraint_solutions", "BaseFlow.position.size.inline", &before_base_position_size_inline, &after_base_position_size_inline);
     }
 
     /// Set the inline coordinate of the given flow if it is absolutely positioned.
@@ -3323,7 +3428,10 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
             .flags
             .contains(FlowFlags::INLINE_POSITION_IS_STATIC)
         {
+            let before_base_position_start_i = block.base.position.start.i;
             block.base.position.start.i = solution.inline_start;
+            let after_base_position_start_i = block.base.position.start.i;
+            /* YANJU-PROFILE */ profile_compare_au("block.rs", "set_inline_position_of_flow_if_necessary", "BaseFlow.position.start.i", &before_base_position_start_i, &after_base_position_start_i);
         }
     }
 }
@@ -3483,7 +3591,10 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         solution: ISizeConstraintSolution,
     ) {
         // Set the x-coordinate of the absolute flow wrt to its containing block.
+        let before_base_position_start_i = block.base.position.start.i;
         block.base.position.start.i = solution.inline_start;
+        let after_base_position_start_i = block.base.position.start.i;
+        /* YANJU-PROFILE */ profile_compare_au("block.rs", "set_inline_position_of_flow_if_necessary", "BaseFlow.position.start.i", &before_base_position_start_i, &after_base_position_start_i);
     }
 }
 

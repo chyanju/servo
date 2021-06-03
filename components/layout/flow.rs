@@ -66,6 +66,8 @@ use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use webrender_api::units::LayoutTransform;
 
+use jutils::profile_compare_au;
+
 /// This marker trait indicates that a type is a struct with `#[repr(C)]` whose first field
 /// is of type `BaseFlow` or some type that also implements this trait.
 ///
@@ -394,7 +396,37 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
             },
             _ => {},
         }
-        self.mut_base().overflow = overflow
+
+        // Au struct has copy trait, so this is ok
+        let before_overflow_scroll_min_x = self.mut_base().overflow.scroll.min().x;
+        let before_overflow_scroll_min_y = self.mut_base().overflow.scroll.min().y;
+        let before_overflow_scroll_max_x = self.mut_base().overflow.scroll.max().x;
+        let before_overflow_scroll_max_y = self.mut_base().overflow.scroll.max().y;
+        let before_overflow_paint_min_x = self.mut_base().overflow.paint.min().x;
+        let before_overflow_paint_min_y = self.mut_base().overflow.paint.min().y;
+        let before_overflow_paint_max_x = self.mut_base().overflow.paint.max().x;
+        let before_overflow_paint_max_y = self.mut_base().overflow.paint.max().y;
+
+        self.mut_base().overflow = overflow;
+
+        let after_overflow_scroll_min_x = self.mut_base().overflow.scroll.min().x;
+        let after_overflow_scroll_min_y = self.mut_base().overflow.scroll.min().y;
+        let after_overflow_scroll_max_x = self.mut_base().overflow.scroll.max().x;
+        let after_overflow_scroll_max_y = self.mut_base().overflow.scroll.max().y;
+        let after_overflow_paint_min_x = self.mut_base().overflow.paint.min().x;
+        let after_overflow_paint_min_y = self.mut_base().overflow.paint.min().y;
+        let after_overflow_paint_max_x = self.mut_base().overflow.paint.max().x;
+        let after_overflow_paint_max_y = self.mut_base().overflow.paint.max().y;
+
+        /* YANJU-PROFILE */ profile_compare_au("flow.rs", "store_overflow", "BaseFlow.overflow.scroll.min.x", &before_overflow_scroll_min_x, &after_overflow_scroll_min_x);
+        /* YANJU-PROFILE */ profile_compare_au("flow.rs", "store_overflow", "BaseFlow.overflow.scroll.min.y", &before_overflow_scroll_min_y, &after_overflow_scroll_min_y);
+        /* YANJU-PROFILE */ profile_compare_au("flow.rs", "store_overflow", "BaseFlow.overflow.scroll.max.x", &before_overflow_scroll_max_x, &after_overflow_scroll_max_x);
+        /* YANJU-PROFILE */ profile_compare_au("flow.rs", "store_overflow", "BaseFlow.overflow.scroll.max.y", &before_overflow_scroll_max_y, &after_overflow_scroll_max_y);
+
+        /* YANJU-PROFILE */ profile_compare_au("flow.rs", "store_overflow", "BaseFlow.overflow.paint.min.x", &before_overflow_paint_min_x, &after_overflow_paint_min_x);
+        /* YANJU-PROFILE */ profile_compare_au("flow.rs", "store_overflow", "BaseFlow.overflow.paint.min.y", &before_overflow_paint_min_y, &after_overflow_paint_min_y);
+        /* YANJU-PROFILE */ profile_compare_au("flow.rs", "store_overflow", "BaseFlow.overflow.paint.max.x", &before_overflow_paint_max_x, &after_overflow_paint_max_x);
+        /* YANJU-PROFILE */ profile_compare_au("flow.rs", "store_overflow", "BaseFlow.overflow.paint.max.y", &before_overflow_paint_max_y, &after_overflow_paint_max_y);
     }
 
     /// Phase 4 of reflow: Compute the stacking-relative position (origin of the content box,
